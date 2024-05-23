@@ -11,6 +11,7 @@ import { ScenariosModule } from './scenarios/scenarios.module';
 import { SubSystemsModule } from './sub-systems/sub-systems.module';
 import { AccessControlModule } from './access-control/access-control.module';
 import { UsersService } from './users/users.service';
+import mongoose from 'mongoose';
 
 @Module({
   imports: [
@@ -34,11 +35,23 @@ import { UsersService } from './users/users.service';
   ],
 })
 export class AppModule {
-  constructor(private readonly _UsersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
   async onModuleInit() {
-    const asd = await this._UsersService.getUser('admin@admin.com');
-    console.log(asd);
-    console.log('AppModule initialized');
+    // Update string checkRequired method to check if the value is a string for allow empty strings
+    mongoose.Schema.Types.String.checkRequired((v) => typeof v === 'string');
+
+    const superAdmins = await this.usersService.getSuperAdmins();
+
+    if (!superAdmins.length) {
+      console.log('No super admins found, creating default super admin');
+
+      await this.usersService.createUser({
+        email: 'super@admin.com',
+        password: 'superadmin123',
+        phoneNumber: '',
+        role: 'SUPER_ADMIN',
+      });
+    }
   }
 }

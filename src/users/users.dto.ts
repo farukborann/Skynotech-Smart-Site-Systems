@@ -1,4 +1,11 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+} from 'class-validator';
+import { RoleEnum } from 'src/access-control/access-control.enum';
 
 export class CreateUserDTO {
   @IsEmail()
@@ -10,4 +17,8 @@ export class CreateUserDTO {
 
   @IsString()
   phoneNumber: string;
+
+  @IsEnum(RoleEnum)
+  @IsNotEmpty()
+  role: string;
 }

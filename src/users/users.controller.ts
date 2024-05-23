@@ -1,4 +1,3 @@
-// import * as bcrypt from 'bcrypt';
 import { Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 import { UsersService as _UsersService } from './users.service';
 import { AuthGuard } from 'src/auth/auth.guard';
@@ -8,36 +7,21 @@ import { LocalAuthGuard } from 'src/auth/local/local.auth.guard';
 export class UsersController {
   constructor(private readonly UsersService: _UsersService) {}
 
-  // @Post('/register')
-  // async register(
-  //   @Body('email') email: string,
-  //   @Body('password') password: string,
-  // ) {
-  //   const saltOrRounds = 10;
-  //   const hashedPassword = await bcrypt.hash(password, saltOrRounds);
-  //   const result = await this.UsersService.insertUser(email, hashedPassword);
-  //   return {
-  //     msg: 'User successfully registered',
-  //     userId: result.id,
-  //     email: result.email,
-  //   };
-  // }
-
   @UseGuards(LocalAuthGuard)
   @Post('/login')
-  login(@Request() req): any {
-    return { User: req.user, msg: 'User logged in' };
+  login(@Request() req) {
+    return { ...req.user.toObject(), password: undefined };
   }
 
   @Get('/logout')
-  logout(@Request() req): any {
+  logout(@Request() req) {
     req.session.destroy();
     return { msg: 'The user session has ended' };
   }
 
   @UseGuards(AuthGuard)
   @Get('/test')
-  test(@Request() req): string {
+  test(@Request() req) {
     return req.user;
   }
 }

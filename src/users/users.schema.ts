@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { RoleEnum } from 'src/access-control/access-control.enum';
+import {
+  RoleEnumArray,
+  RoleEnumType,
+} from 'src/access-control/access-control.enum';
 
 @Schema({ timestamps: true })
 class PrivacySettings extends Document {
@@ -15,10 +18,10 @@ class PrivacySettings extends Document {
 
   @Prop({
     required: true,
-    enum: ['admin', 'site-admin', 'user'],
-    default: 'user',
+    enum: ['SITE_ADMIN', 'ADMIN', 'USER'],
+    default: 'USER',
   })
-  whoCanSendTickets: 'admin' | 'site-admin' | 'user';
+  whoCanSendTickets: 'SITE_ADMIN' | 'ADMIN' | 'USER';
 }
 
 @Schema({ timestamps: true })
@@ -29,20 +32,24 @@ export class User extends Document {
   @Prop({ required: true, type: String })
   password: string;
 
-  @Prop({ required: true, type: String })
+  @Prop({ required: true, type: String, default: '' })
   profilePhoto: string;
 
-  @Prop({ required: true, type: String })
+  @Prop({ required: true, type: String, default: '' })
   phoneNumber: string;
-
-  @Prop({ required: true, type: PrivacySettings })
-  profileSettings: PrivacySettings;
 
   @Prop({
     required: true,
-    enum: RoleEnum,
+    type: PrivacySettings,
+    default: () => ({}),
   })
-  role: RoleEnum;
+  privacySettings: PrivacySettings;
+
+  @Prop({
+    required: true,
+    enum: RoleEnumArray,
+  })
+  role: RoleEnumType;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

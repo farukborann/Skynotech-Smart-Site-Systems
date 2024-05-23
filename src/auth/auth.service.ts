@@ -7,7 +7,7 @@ export class AuthService {
   constructor(private readonly UsersService: _UsersService) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.UsersService.getUser(email);
+    const user = await this.UsersService.getUserByEmail(email);
     const passwordValid = await bcrypt.compare(password, user.password);
 
     if (!user) {
@@ -15,11 +15,11 @@ export class AuthService {
     }
 
     if (user && passwordValid) {
-      return {
-        userId: user.id,
-        email: user.email,
-      };
+      delete user.password;
+
+      return user;
     }
+
     return null;
   }
 }
