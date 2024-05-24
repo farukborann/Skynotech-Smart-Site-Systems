@@ -18,10 +18,10 @@ class PrivacySettings extends Document {
 
   @Prop({
     required: true,
-    enum: ['SITE_ADMIN', 'ADMIN', 'USER'],
+    enum: ['ADMIN', 'USER'],
     default: 'USER',
   })
-  whoCanSendTickets: 'SITE_ADMIN' | 'ADMIN' | 'USER';
+  whoCanSendTickets: 'ADMIN' | 'USER';
 }
 
 @Schema({ timestamps: true })

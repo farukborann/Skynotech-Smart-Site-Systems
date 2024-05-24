@@ -1,4 +1,5 @@
-import { IsString } from 'class-validator';
+import { IsMongoId, IsString } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateSiteDTO {
   @IsString()
@@ -12,4 +13,9 @@ export class CreateSiteDTO {
 
   @IsString()
   district: string;
+
+  @IsMongoId({ each: true })
+  users: string[];
 }
+
+export class UpdateSiteDTO extends PartialType(CreateSiteDTO) {}

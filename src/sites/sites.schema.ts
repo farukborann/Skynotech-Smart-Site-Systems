@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Site extends Document {
@@ -14,6 +14,9 @@ export class Site extends Document {
 
   @Prop({ required: true, type: String })
   district: string;
+
+  @Prop({ required: true, type: [mongoose.Types.ObjectId], default: [] })
+  users: mongoose.Types.ObjectId[];
 }
 
 export const SiteSchema = SchemaFactory.createForClass(Site);

@@ -14,11 +14,21 @@ export class UsersService {
     const saltOrRounds = 10;
     const hashedPassword = await bcrypt.hash(data.password, saltOrRounds);
 
-    return await this.UserModel.create({ ...data, password: hashedPassword });
+    const user = await this.UserModel.create({
+      ...data,
+      password: hashedPassword,
+    });
+    delete user.password;
+
+    return user;
   }
 
   async getUserByEmail(email: string) {
     return await this.UserModel.findOne({ email });
+  }
+
+  async getUserById(id: string) {
+    return await this.UserModel.findById(id);
   }
 
   async getSuperAdmins() {
