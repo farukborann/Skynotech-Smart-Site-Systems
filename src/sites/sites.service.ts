@@ -14,12 +14,6 @@ export class SitesService {
     return await this.siteModel.find({}).exec();
   }
 
-  async createSite(data: CreateSiteDTO) {
-    const userIds = data.users.map((x) => new mongoose.Types.ObjectId(x));
-
-    return await this.siteModel.create({ ...data, users: userIds });
-  }
-
   async getUsersSites(user: SessionUser) {
     if (user.role === RoleEnum.SUPER_ADMIN)
       return await this.siteModel.find({}).exec();
@@ -40,7 +34,16 @@ export class SitesService {
     return site;
   }
 
+  async createSite(data: CreateSiteDTO) {
+    // connect to mqtt topic
+    const userIds = data.users.map((x) => new mongoose.Types.ObjectId(x));
+
+    return await this.siteModel.create({ ...data, users: userIds });
+  }
+
   async updateSite(id: string, data: UpdateSiteDTO) {
+    // check if users changed and update users
+    // check if mqtt topic is changed and reconnect to new topic
     return await this.siteModel.findByIdAndUpdate(id, data, { new: true });
   }
 }
