@@ -2,21 +2,25 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class Site extends Document {
+export class SiteGroup extends Document {
   @Prop({ required: true, type: String })
   name: string;
 
-  @Prop({ required: true, type: String })
-  address: string;
+  @Prop({
+    required: true,
+    type: [mongoose.Types.ObjectId],
+    default: [],
+    ref: 'sites',
+  })
+  sites: mongoose.Types.ObjectId[];
 
-  @Prop({ required: true, type: String })
-  province: string;
-
-  @Prop({ required: true, type: String })
-  district: string;
-
-  @Prop({ required: true, type: String })
-  mqttTopic: string;
+  @Prop({
+    required: true,
+    type: [mongoose.Types.ObjectId],
+    default: [],
+    ref: 'users',
+  })
+  siteGroupAdmins: mongoose.Types.ObjectId[];
 
   @Prop({
     required: true,
@@ -35,4 +39,4 @@ export class Site extends Document {
   users: mongoose.Types.ObjectId[];
 }
 
-export const SiteSchema = SchemaFactory.createForClass(Site);
+export const SiteGroupSchema = SchemaFactory.createForClass(SiteGroup);

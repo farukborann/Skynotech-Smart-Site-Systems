@@ -12,7 +12,7 @@ export class AccessControlService {
   private priority: number = 1;
 
   constructor() {
-    this.buildRoles([RoleEnum.USER, RoleEnum.ADMIN, RoleEnum.SUPER_ADMIN]);
+    this.buildRoles([RoleEnum.USER, RoleEnum.SUPER_ADMIN]);
   }
 
   /**

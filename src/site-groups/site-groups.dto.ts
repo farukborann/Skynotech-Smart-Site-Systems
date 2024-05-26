@@ -1,21 +1,15 @@
 import { IsMongoId, IsString } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
-export class CreateSiteDTO {
+export class CreateSiteGroupDTO {
   @IsString()
   name: string;
 
-  @IsString()
-  address: string;
+  @IsMongoId({ each: true })
+  sites: string[];
 
-  @IsString()
-  province: string;
-
-  @IsString()
-  district: string;
-
-  @IsString()
-  mqttTopic: string;
+  @IsMongoId({ each: true })
+  siteGroupAdmins: string[];
 
   @IsMongoId({ each: true })
   admins: string[];
@@ -24,4 +18,4 @@ export class CreateSiteDTO {
   users: string[];
 }
 
-export class UpdateSiteDTO extends PartialType(CreateSiteDTO) {}
+export class UpdateSiteGroupDTO extends PartialType(CreateSiteGroupDTO) {}

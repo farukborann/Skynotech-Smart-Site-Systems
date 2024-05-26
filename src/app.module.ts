@@ -11,7 +11,10 @@ import { ScenariosModule } from './scenarios/scenarios.module';
 import { SubSystemsModule } from './sub-systems/sub-systems.module';
 import { AccessControlModule } from './access-control/access-control.module';
 import { UsersService } from './users/users.service';
+import { SiteGroupsModule } from './site-groups/site-groups.module';
 import mongoose from 'mongoose';
+import { RoleEnum } from './access-control/access-control.enum';
+import { MqttModule } from './mqtt/mqtt.module';
 
 @Module({
   imports: [
@@ -32,6 +35,8 @@ import mongoose from 'mongoose';
     ScenariosModule,
     AuthModule,
     AccessControlModule,
+    SiteGroupsModule,
+    MqttModule,
   ],
 })
 export class AppModule {
@@ -47,10 +52,10 @@ export class AppModule {
       console.log('No super admins found, creating default super admin');
 
       await this.usersService.createUser({
-        email: 'super@admin.com',
-        password: 'superadmin123',
+        email: 'iam@superadmin.com',
+        password: 'superadminpass123',
         phoneNumber: '',
-        role: 'SUPER_ADMIN',
+        role: RoleEnum.SUPER_ADMIN,
       });
     }
   }

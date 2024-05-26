@@ -20,15 +20,15 @@ export class SitesController {
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
   @Get()
-  async getAllSites(@Req() req) {
-    return await this.sitesService.getAllSites(req.user._id);
+  async getUsersSites(@Req() req) {
+    return await this.sitesService.getUsersSites(req.user);
   }
 
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
   @Get(':id')
   async getSiteById(@Param('id') id: string, @Req() req) {
-    return await this.sitesService.getSiteById(id, req.user._id);
+    return await this.sitesService.getSiteById(id, req.user);
   }
 
   @UseGuards(AuthGuard)

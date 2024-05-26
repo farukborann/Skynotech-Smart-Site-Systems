@@ -15,18 +15,11 @@ class PrivacySettings extends Document {
 
   @Prop({ required: true, type: Boolean, default: true })
   showProfilePhoto: boolean;
-
-  @Prop({
-    required: true,
-    enum: ['ADMIN', 'USER'],
-    default: 'USER',
-  })
-  whoCanSendTickets: 'ADMIN' | 'USER';
 }
 
 @Schema({ timestamps: true })
 export class User extends Document {
-  @Prop({ required: true, type: String })
+  @Prop({ required: true, type: String, unique: true })
   email: string;
 
   @Prop({ required: true, type: String })
