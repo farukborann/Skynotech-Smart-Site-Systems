@@ -15,6 +15,12 @@ export class SubSystem extends Document {
 
   @Prop({ required: true, type: String })
   mqttTopic: string;
+
+  @Prop({ required: true, type: Number })
+  ignitionCount: number;
+
+  @Prop({ required: true, type: Object })
+  lastIgnitionStatuses: object;
 }
 
 export const SubSystemSchema = SchemaFactory.createForClass(SubSystem);

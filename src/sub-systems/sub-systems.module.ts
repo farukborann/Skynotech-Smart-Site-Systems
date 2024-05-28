@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SubSystemsController } from './sub-systems.controller';
 import { SubSystemsService } from './sub-systems.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -10,7 +10,7 @@ import { SitesModule } from 'src/sites/sites.module';
     MongooseModule.forFeature([
       { name: 'SubSystems', schema: SubSystemSchema },
     ]),
-    SitesModule,
+    forwardRef(() => SitesModule),
   ],
   controllers: [SubSystemsController],
   providers: [SubSystemsService],

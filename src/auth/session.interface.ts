@@ -1,4 +1,4 @@
-import { RoleEnumType } from 'src/access-control/access-control.enum';
+import { RoleEnum, RoleEnumType } from 'src/access-control/access-control.enum';
 
 export interface SessionUser {
   _id: string;
@@ -7,3 +7,11 @@ export interface SessionUser {
   phoneNumber: string;
   role: RoleEnumType;
 }
+
+export const SystemSession = {
+  _id: 'system',
+  email: '',
+  profilePhoto: '',
+  phoneNumber: '',
+  role: RoleEnum.SUPER_ADMIN,
+};

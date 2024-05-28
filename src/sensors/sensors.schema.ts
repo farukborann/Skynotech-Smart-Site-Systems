@@ -13,7 +13,7 @@ export class Sensor extends Document {
   subSystemId: mongoose.Types.ObjectId;
 
   @Prop({ required: true, type: String })
-  mqqtTopic: string;
+  mqttTopic: string;
 }
 
 export const SensorSchema = SchemaFactory.createForClass(Sensor);
