@@ -1,4 +1,10 @@
-import { IsEnum, IsMongoId, IsNumber, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsMongoId,
+  IsNumber,
+  IsString,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { SystemTypeEnum } from './sub-systems.enum';
 
@@ -17,3 +23,11 @@ export class CreateSubSystemDTO {
 }
 
 export class UpdateSubSystemDTO extends PartialType(CreateSubSystemDTO) {}
+
+export class UpdateIgnitionStatusDTO {
+  @IsNumber()
+  ignitionIndex: number;
+
+  @IsBoolean()
+  status: boolean;
+}

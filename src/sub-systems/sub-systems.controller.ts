@@ -10,7 +10,11 @@ import {
   Body,
 } from '@nestjs/common';
 import { SubSystemsService } from './sub-systems.service';
-import { CreateSubSystemDTO, UpdateSubSystemDTO } from './sub-systems.dto';
+import {
+  CreateSubSystemDTO,
+  UpdateIgnitionStatusDTO,
+  UpdateSubSystemDTO,
+} from './sub-systems.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { Roles } from 'src/access-control/access-control.decorator';
 import { RoleEnum } from 'src/access-control/access-control.enum';
@@ -36,8 +40,8 @@ export class SubSystemsController {
   @Get(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
-  async getSubSystemById(@Param('id') id: string) {
-    return await this.subSystemsService.getSubSystemById(id);
+  async getSubSystemById(@Param('id') id: string, @Req() req) {
+    return await this.subSystemsService.getSubSystemById(id, req.user);
   }
 
   @Post()
@@ -62,5 +66,20 @@ export class SubSystemsController {
   @Roles(RoleEnum.SUPER_ADMIN)
   async deleteSubSystem(@Param('id') id: string) {
     return await this.subSystemsService.deleteSubSystem(id);
+  }
+
+  @Post(':id/ignition')
+  @UseGuards(AuthGuard)
+  @Roles(RoleEnum.USER)
+  async updateIgnitionStatus(
+    @Param('id') id: string,
+    @Body() data: UpdateIgnitionStatusDTO,
+    @Req() req,
+  ) {
+    return await this.subSystemsService.updateIgnitionStatus(
+      id,
+      data,
+      req.user,
+    );
   }
 }

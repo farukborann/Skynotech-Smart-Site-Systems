@@ -12,9 +12,6 @@ import { SubSystemsService } from 'src/sub-systems/sub-systems.service';
 export class MqttService {
   client: MqttClient | null = null;
 
-  // siteId -> subSystemId -> sensorId = subscriptionKey
-  // private subscriptions: { [key: string]: object } = {};
-
   // topic -> sensorId
   private topicSensors: { [key: string]: string } = {};
 
@@ -29,18 +26,16 @@ export class MqttService {
     connectTimeout: 10000, // Bağlantı süresi 10 saniye olarak ayarlandı
   };
 
-  readonly IGNITION_TOPIC = 'ignitions';
+  readonly IGNITION_TOPIC = 'kontaklar';
+  readonly SENSORS_TOPIC = 'sensörler';
+  readonly IGNITION_JSON_KEY = 'kontakDurum';
 
-  private getSubscriptionKeyForSensor(
-    site: Site,
-    subSystem: SubSystem,
-    sensor: Sensor,
-  ) {
-    return `${site.mqttTopic}/${subSystem.mqttTopic}/${sensor.mqttTopic}`;
+  private getTopicForSensor(site: Site, subSystem: SubSystem, sensor: Sensor) {
+    return `${site.mqttTopic}/${this.SENSORS_TOPIC}/${subSystem.mqttTopic}/${sensor.mqttTopic}`;
   }
 
-  private getSubscriptionKeyForIgnitions(site: Site, subSystem: SubSystem) {
-    return `${site.mqttTopic}/${subSystem.mqttTopic}/${this.IGNITION_TOPIC}`;
+  private getTopicForIgnitions(site: Site, subSystem: SubSystem) {
+    return `${site.mqttTopic}/${this.IGNITION_TOPIC}/${subSystem.mqttTopic}`;
   }
 
   constructor(
@@ -89,33 +84,7 @@ export class MqttService {
     });
   }
 
-  async unsubscribeForSensor(
-    siteId: string,
-    subSystemId: string,
-    sensorId: string,
-  ) {
-    // if (
-    //   this.subscriptions[siteId] &&
-    //   this.subscriptions[siteId][subSystemId] &&
-    //   this.subscriptions[siteId][subSystemId][sensorId]
-    // ) {
-    //   this.client?.unsubscribe(
-    //     this.subscriptions[siteId][subSystemId][sensorId],
-    //   );
-
-    //   const topic = this.subscriptions[siteId][subSystemId][sensorId];
-
-    //   if (this.lastValues[topic]) {
-    //     delete this.lastValues[topic];
-    //   }
-
-    //   delete this.subscriptions[siteId][subSystemId][sensorId];
-
-    //   console.log(
-    //     `Unsubscribed from ${this.subscriptions[siteId][subSystemId][sensorId]} (Sensor)`,
-    //   );
-    // }
-
+  async unsubscribeForSensor(sensorId: string) {
     const subscriptionKey = this.topicSensors[sensorId];
 
     this.client?.unsubscribe(subscriptionKey);
@@ -127,137 +96,68 @@ export class MqttService {
     delete this.topicSensors[sensorId];
   }
 
-  async unsubscribeForSubSystem(siteId: string, subSystemId: string) {
-    // if (this.subscriptions[siteId] && this.subscriptions[siteId][subSystemId]) {
-    //   for (const sensorId in this.subscriptions[siteId][subSystemId]) {
-    //     await this.unsubscribeForSensor(siteId, subSystemId, sensorId);
-    //   }
-
-    // this.client?.unsubscribe(
-    //   this.subscriptions[siteId][subSystemId][this.IGNITION_TOPIC],
-    // );
-
-    // delete this.subscriptions[siteId][subSystemId][this.IGNITION_TOPIC];
-
-    // console.log(
-    //   `Unsubscribed from ${this.subscriptions[siteId][subSystemId][this.IGNITION_TOPIC]} (Ignition)`,
-    // );
-
-    //   delete this.subscriptions[siteId][subSystemId];
-
-    //   console.log(`Unsubscribed from ${subSystemId} (SubSystem)`);
-    // }
-
+  async unsubscribeForSubSystem(subSystemId: string) {
     const sensors = await this.sensorsService.getSensorsBySubSystemId(
       subSystemId,
       SystemSession,
     );
 
     for (const sensor of sensors) {
-      await this.unsubscribeForSensor(
-        siteId,
-        subSystemId,
-        sensor._id.toString(),
-      );
+      await this.unsubscribeForSensor(sensor._id.toString());
     }
   }
 
   async unsubscribeForSite(siteId: string) {
-    // if (this.subscriptions[siteId]) {
-    //   for (const subSystemId in this.subscriptions[siteId]) {
-    //     await this.unsubscribeForSubSystem(siteId, subSystemId);
-    //   }
-
-    //   delete this.subscriptions[siteId];
-
-    //   console.log(`Unsubscribed from ${siteId} (Site)`);
-    // }
-
     const subSystems = await this.subSystemsService.getSitesSubSystems(
       siteId,
       SystemSession,
     );
 
     for (const subSystem of subSystems) {
-      await this.unsubscribeForSubSystem(siteId, subSystem._id.toString());
+      await this.unsubscribeForSubSystem(subSystem._id.toString());
     }
   }
 
-  async subscribeForSensor(
-    siteId: string,
-    subSystemId: string,
-    sensorId: string,
-  ) {
-    const site = await this.sitesService.getSiteById(siteId, SystemSession);
-
-    const subSystem =
-      await this.subSystemsService.getSubSystemById(subSystemId);
-
+  async subscribeForSensor(sensorId: string) {
     const sensor = await this.sensorsService.getSensorById(
       sensorId,
       SystemSession,
     );
 
-    const subscriptionKey = this.getSubscriptionKeyForSensor(
-      site,
-      subSystem,
-      sensor,
+    const subSystem = await this.subSystemsService.getSubSystemById(
+      sensor.subSystemId.toString(),
+      SystemSession,
     );
 
+    const site = await this.sitesService.getSiteById(
+      subSystem.siteId.toString(),
+      SystemSession,
+    );
+
+    const subscriptionKey = this.getTopicForSensor(site, subSystem, sensor);
+
     this.client?.subscribe(subscriptionKey);
-
-    // if (!this.subscriptions[site._id.toString()]) {
-    //   this.subscriptions[site._id.toString()] = {};
-    // }
-
-    // if (!this.subscriptions[site._id.toString()][subSystem._id.toString()]) {
-    //   this.subscriptions[site._id.toString()][subSystem._id.toString()] = {};
-    // }
-
-    // this.subscriptions[site._id.toString()][subSystem._id.toString()][
-    //   sensor._id.toString()
-    // ] = subscriptionKey;
 
     this.topicSensors[subscriptionKey] = sensorId;
 
     console.log(`Subscribed to ${subscriptionKey} (Sensor)`);
   }
 
-  async subscribeForSubSystem(siteId: string, subSystemId: string) {
-    // const site = await this.sitesService.getSiteById(siteId, SystemSession);
-
-    const subSystem =
-      await this.subSystemsService.getSubSystemById(subSystemId);
+  async subscribeForSubSystem(subSystemId: string) {
+    const subSystem = await this.subSystemsService.getSubSystemById(
+      subSystemId,
+      SystemSession,
+    );
 
     const sensors = await this.sensorsService.getSensorsBySubSystemId(
       subSystem._id.toString(),
       SystemSession,
     );
 
-    // if (!this.subscriptions[site._id.toString()]) {
-    //   this.subscriptions[site._id.toString()] = {};
-    // }
-
-    // if (!this.subscriptions[site._id.toString()][subSystem._id.toString()]) {
-    //   this.subscriptions[site._id.toString()][subSystem._id.toString()] = {};
-    // }
-
     for (const sensor of sensors) {
-      await this.subscribeForSensor(siteId, subSystemId, sensor._id.toString());
+      await this.subscribeForSensor(sensor._id.toString());
     }
 
-    // const ignitionSubscriptionKey = this.getSubscriptionKeyForIgnitions(
-    //   site,
-    //   subSystem,
-    // );
-
-    // this.client?.subscribe(ignitionSubscriptionKey);
-
-    // this.subscriptions[site._id.toString()][subSystem._id.toString()][
-    //   this.IGNITION_TOPIC
-    // ] = ignitionSubscriptionKey;
-
-    // console.log(`Subscribed to ${ignitionSubscriptionKey} (Ignition)`);
     console.log(`Subscribed to ${subSystemId} (SubSystem)`);
   }
 
@@ -268,34 +168,26 @@ export class MqttService {
     );
 
     for (const subSystem of subSystems) {
-      await this.subscribeForSubSystem(siteId, subSystem._id.toString());
+      await this.subscribeForSubSystem(subSystem._id.toString());
     }
 
     console.log(`Subscribed to ${siteId} (Site)`);
   }
 
-  async updateIgnitionStatus(
-    siteId: string,
-    subSystemId: string,
-    ignitionStatuses: object,
-  ) {
-    const site = await this.sitesService.getSiteById(siteId, SystemSession);
-
-    const subSystem =
-      await this.subSystemsService.getSubSystemById(subSystemId);
-
-    const ignitionSubscriptionKey = this.getSubscriptionKeyForIgnitions(
-      site,
-      subSystem,
+  async updateIgnitionStatus(subSystemId: string, ignitionStatuses: object) {
+    const subSystem = await this.subSystemsService.getSubSystemById(
+      subSystemId,
+      SystemSession,
     );
 
-    this.client?.publish(
-      ignitionSubscriptionKey,
-      JSON.stringify(ignitionStatuses),
+    const site = await this.sitesService.getSiteById(
+      subSystem.siteId.toString(),
+      SystemSession,
     );
 
-    console.log(
-      `Published to ${ignitionSubscriptionKey} (Ignition) => ${JSON.stringify(ignitionStatuses)}`,
-    );
+    const ignitionSubscriptionKey = this.getTopicForIgnitions(site, subSystem);
+    const data = JSON.stringify({ [this.IGNITION_JSON_KEY]: ignitionStatuses });
+
+    this.client?.publish(ignitionSubscriptionKey, data);
   }
 }

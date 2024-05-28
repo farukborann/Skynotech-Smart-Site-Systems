@@ -12,15 +12,12 @@ import { CreateSensorDTO } from './sensors.dto';
 import { SubSystemsService } from 'src/sub-systems/sub-systems.service';
 import { SessionUser, SystemSession } from 'src/auth/session.interface';
 import { MqttService } from 'src/mqtt/mqtt.service';
-import { SitesService } from 'src/sites/sites.service';
 import moongose from 'mongoose';
 
 @Injectable()
 export class SensorsService {
   constructor(
     @InjectModel('Sensors') private sensorsModel: Model<Sensor>,
-    @Inject(forwardRef(() => SitesService))
-    private readonly sitesService: SitesService,
     private readonly subSystemsService: SubSystemsService,
     @Inject(forwardRef(() => MqttService))
     private readonly mqttService: MqttService,
@@ -40,6 +37,7 @@ export class SensorsService {
   async createSensor(sensor: CreateSensorDTO) {
     const subSystem = await this.subSystemsService.getSubSystemById(
       sensor.subSystemId,
+      SystemSession,
     );
 
     if (!subSystem) {
@@ -51,16 +49,7 @@ export class SensorsService {
       subSystemId: subSystem._id,
     });
 
-    const site = await this.sitesService.getSiteById(
-      subSystem.siteId.toString(),
-      SystemSession,
-    );
-
-    this.mqttService.subscribeForSensor(
-      site._id.toString(),
-      subSystem._id.toString(),
-      res._id.toString(),
-    );
+    this.mqttService.subscribeForSensor(res._id.toString());
   }
 
   async getAllSensors() {
@@ -95,6 +84,7 @@ export class SensorsService {
   async updateSensor(id: string, sensor: CreateSensorDTO) {
     const subSystem = this.subSystemsService.getSubSystemById(
       sensor.subSystemId,
+      SystemSession,
     );
 
     if (!subSystem) {
