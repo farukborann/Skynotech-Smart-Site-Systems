@@ -1,12 +1,13 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import {
   RoleEnumArray,
   RoleEnumType,
 } from 'src/access-control/access-control.enum';
 
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+
 @Schema({ timestamps: true })
-class PrivacySettings extends Document {
+class PrivacySettings extends Document<mongoose.Types.ObjectId> {
   @Prop({ required: true, type: Boolean, default: true })
   showEmail: boolean;
 
@@ -18,7 +19,7 @@ class PrivacySettings extends Document {
 }
 
 @Schema({ timestamps: true })
-export class User extends Document {
+export class User extends Document<mongoose.Types.ObjectId> {
   @Prop({ required: true, type: String, unique: true })
   email: string;
 

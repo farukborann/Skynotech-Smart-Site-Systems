@@ -1,20 +1,22 @@
+import mongoose, { Model } from 'mongoose';
+import { SessionUser, SystemSession } from 'src/auth/session.interface';
+import { MqttService } from 'src/mqtt/mqtt.service';
+import { SitesService } from 'src/sites/sites.service';
+
 import {
   ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { SubSystem } from './sub-systems.schema';
-import { SitesService } from 'src/sites/sites.service';
-import { SessionUser, SystemSession } from 'src/auth/session.interface';
 import {
   CreateSubSystemDTO,
   UpdateIgnitionStatusDTO,
   UpdateSubSystemDTO,
 } from './sub-systems.dto';
-import { MqttService } from 'src/mqtt/mqtt.service';
+import { SubSystem } from './sub-systems.schema';
 
 @Injectable()
 export class SubSystemsService {
@@ -27,29 +29,29 @@ export class SubSystemsService {
     private readonly mqttService: MqttService,
   ) {}
 
-  async checkUserAccessToSubSystem(subSystemId: string, user: SessionUser) {
+  async checkUserAccessToSubSystem(
+    subSystemId: mongoose.Types.ObjectId,
+    user: SessionUser,
+  ) {
     const subSystem = await this.subSystemsModel.findById(subSystemId).exec();
 
-    if (!subSystem) return false;
+    if (!subSystem) throw new NotFoundException('SubSystem not found');
 
-    return this.sitesServices.checkUserAccessToSite(
-      subSystem.siteId.toString(),
-      user,
-    );
+    return this.sitesServices.checkUserAccessToSite(subSystem.siteId, user);
   }
 
   async getAllSubSystems() {
     return await this.subSystemsModel.find({}).exec();
   }
 
-  async getSubSystemById(id: string, user: SessionUser) {
+  async getSubSystemById(id: mongoose.Types.ObjectId, user: SessionUser) {
     if (!(await this.checkUserAccessToSubSystem(id, user))) {
       throw new ForbiddenException('User has no access to this sub-system');
     }
     return await this.subSystemsModel.findById(id).exec();
   }
 
-  async getSitesSubSystems(siteId: string, user: SessionUser) {
+  async getSitesSubSystems(siteId: mongoose.Types.ObjectId, user: SessionUser) {
     if (!(await this.sitesServices.checkUserAccessToSite(siteId, user))) {
       throw new ForbiddenException('User has no access to this site');
     }
@@ -84,20 +86,63 @@ export class SubSystemsService {
     return await this.subSystemsModel.create(subSystem);
   }
 
-  async updateSubSystem(id: string, data: UpdateSubSystemDTO) {
-    // check is topic changed and reconnect for new topic
-    return await this.subSystemsModel.findByIdAndUpdate(id, data, {
-      new: true,
-    });
+  async updateSubSystem(id: mongoose.Types.ObjectId, data: UpdateSubSystemDTO) {
+    const subSystem = await this.subSystemsModel.findById(id).exec();
+
+    if (!subSystem) {
+      throw new ForbiddenException('SubSystem not found');
+    }
+
+    let reconnect2Mqtt = false;
+
+    if (data.siteId && data.siteId.toString() !== subSystem.siteId.toString()) {
+      const newSite = await this.sitesServices.getSiteById(
+        data.siteId,
+        SystemSession,
+      );
+
+      if (!newSite) {
+        throw new ForbiddenException('Site not found');
+      }
+
+      subSystem.siteId = new mongoose.Types.ObjectId(data.siteId);
+      reconnect2Mqtt = true;
+    }
+
+    if (data.mqttTopic && data.mqttTopic !== subSystem.mqttTopic) {
+      subSystem.mqttTopic = data.mqttTopic;
+      reconnect2Mqtt = true;
+    }
+
+    if (reconnect2Mqtt) {
+      await subSystem.save();
+      await this.mqttService.unsubscribeForSubSystem(subSystem._id);
+      await this.mqttService.subscribeForSubSystem(subSystem._id);
+    }
+
+    if (data.ignitionCount && data.ignitionCount !== subSystem.ignitionCount) {
+      const newIgnitionStatuses = {};
+
+      for (let i = 1; i <= data.ignitionCount; i++) {
+        newIgnitionStatuses[`${i}`] =
+          subSystem.lastIgnitionStatuses[`${i}`] || 0;
+      }
+
+      subSystem.lastIgnitionStatuses = newIgnitionStatuses;
+
+      await this.mqttService.updateIgnitionStatus(id, newIgnitionStatuses);
+    }
+
+    return await subSystem.save();
   }
 
-  async deleteSubSystem(id: string) {
-    // disconnect from topic
+  async deleteSubSystem(id: mongoose.Types.ObjectId) {
+    await this.mqttService.unsubscribeForSubSystem(id);
     return await this.subSystemsModel.findByIdAndDelete(id);
   }
 
   async updateIgnitionStatus(
-    subSystemId: string,
+    subSystemId: mongoose.Types.ObjectId,
     data: UpdateIgnitionStatusDTO,
     user: SessionUser,
   ) {
@@ -107,9 +152,7 @@ export class SubSystemsService {
       throw new ForbiddenException('SubSystem not found');
     }
 
-    if (
-      !(await this.checkUserAccessToSubSystem(subSystem._id.toString(), user))
-    ) {
+    if (!(await this.checkUserAccessToSubSystem(subSystem._id, user))) {
       throw new ForbiddenException('User has no access to this site');
     }
 

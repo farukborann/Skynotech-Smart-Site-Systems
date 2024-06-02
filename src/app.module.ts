@@ -1,20 +1,20 @@
+import mongoose from 'mongoose';
+import * as MongooseDelete from 'mongoose-delete';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import * as MongooseDelete from 'mongoose-delete';
-
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { SitesModule } from './sites/sites.module';
-import { SensorsModule } from './sensors/sensors.module';
-import { ScenariosModule } from './scenarios/scenarios.module';
-import { SubSystemsModule } from './sub-systems/sub-systems.module';
-import { AccessControlModule } from './access-control/access-control.module';
-import { UsersService } from './users/users.service';
-import { SiteGroupsModule } from './site-groups/site-groups.module';
-import mongoose from 'mongoose';
 import { RoleEnum } from './access-control/access-control.enum';
+import { AccessControlModule } from './access-control/access-control.module';
+import { AuthModule } from './auth/auth.module';
 import { MqttModule } from './mqtt/mqtt.module';
+import { ScenariosModule } from './scenarios/scenarios.module';
+import { SensorsModule } from './sensors/sensors.module';
+import { SiteGroupsModule } from './site-groups/site-groups.module';
+import { SitesModule } from './sites/sites.module';
+import { SubSystemsModule } from './sub-systems/sub-systems.module';
+import { UsersModule } from './users/users.module';
+import { UsersService } from './users/users.service';
 
 @Module({
   imports: [
@@ -39,6 +39,8 @@ import { MqttModule } from './mqtt/mqtt.module';
     MqttModule,
   ],
 })
+// TODO: Check all endpoints has access control
+// TODO: Check all endpoints has update mqqtt service
 export class AppModule {
   constructor(private readonly usersService: UsersService) {}
 

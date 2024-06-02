@@ -1,8 +1,9 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
 
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+
 @Schema({ timestamps: true })
-export class Site extends Document {
+export class Site extends Document<mongoose.Types.ObjectId> {
   @Prop({ required: true, type: String })
   name: string;
 

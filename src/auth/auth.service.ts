@@ -1,6 +1,11 @@
-import { Injectable, NotAcceptableException } from '@nestjs/common';
-import { UsersService as _UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
+import { UsersService as _UsersService } from 'src/users/users.service';
+
+import {
+  BadRequestException,
+  Injectable,
+  NotAcceptableException,
+} from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -8,11 +13,12 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.UsersService.getUserByEmail(email);
-    const passwordValid = await bcrypt.compare(password, user.password);
 
     if (!user) {
-      throw new NotAcceptableException('could not find the user');
+      throw new NotAcceptableException('Could not find the user');
     }
+
+    const passwordValid = await bcrypt.compare(password, user.password);
 
     if (user && passwordValid) {
       delete user.password;
@@ -20,6 +26,6 @@ export class AuthService {
       return user;
     }
 
-    return null;
+    throw new BadRequestException('Password is incorrect');
   }
 }

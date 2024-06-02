@@ -1,3 +1,8 @@
+import mongoose, { Model } from 'mongoose';
+import { RoleEnum } from 'src/access-control/access-control.enum';
+import { SessionUser } from 'src/auth/session.interface';
+import { MqttService } from 'src/mqtt/mqtt.service';
+
 import {
   ForbiddenException,
   forwardRef,
@@ -5,13 +10,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { CreateSiteDTO, UpdateSiteDTO } from './sites.dto';
 import { Site } from './sites.schema';
-import mongoose, { Model } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
-import { SessionUser } from 'src/auth/session.interface';
-import { RoleEnum } from 'src/access-control/access-control.enum';
-import { MqttService } from 'src/mqtt/mqtt.service';
 
 @Injectable()
 export class SitesService {
@@ -21,17 +22,20 @@ export class SitesService {
     private readonly mqttService: MqttService,
   ) {}
 
-  async checkUserAccessToSite(siteId: string, user: SessionUser) {
+  async checkUserAccessToSite(
+    siteId: mongoose.Types.ObjectId,
+    user: SessionUser,
+  ) {
     const site = await this.siteModel.findById(siteId).exec();
 
-    if (!site) return false;
+    if (!site) throw new NotFoundException('Site not found');
 
     if (
       user.role !== RoleEnum.SUPER_ADMIN &&
       !site.admins.includes(new mongoose.Types.ObjectId(user._id)) &&
       !site.users.includes(new mongoose.Types.ObjectId(user._id))
     )
-      return false;
+      throw new ForbiddenException('User has no access to this site');
 
     return true;
   }
@@ -47,7 +51,7 @@ export class SitesService {
     return await this.siteModel.find({ users: { $in: user._id } }).exec();
   }
 
-  async getSiteById(id: string, user: SessionUser) {
+  async getSiteById(id: mongoose.Types.ObjectId, user: SessionUser) {
     if (!(await this.checkUserAccessToSite(id, user)))
       throw new ForbiddenException('User has no access to this site');
 
@@ -80,40 +84,61 @@ export class SitesService {
     });
   }
 
-  async updateSite(id: string, data: UpdateSiteDTO) {
+  async updateSite(id: mongoose.Types.ObjectId, data: UpdateSiteDTO) {
     const site = await this.siteModel.findById(id).exec();
 
-    const newAdminsIds = data.admins.map((x) => new mongoose.Types.ObjectId(x));
+    if (data.admins) {
+      const newAdminsIds = data.admins.map(
+        (x) => new mongoose.Types.ObjectId(x),
+      );
 
-    for (const adminId of newAdminsIds) {
-      const admin = await this.siteModel.findById(adminId).exec();
+      for (const adminId of newAdminsIds) {
+        const admin = await this.siteModel.findById(adminId).exec();
 
-      if (!admin) throw new NotFoundException('Admin not found');
+        if (!admin) throw new NotFoundException('Admin not found');
+      }
+
+      site.admins = newAdminsIds;
     }
 
-    const newUserIds = data.users.map((x) => new mongoose.Types.ObjectId(x));
+    if (data.users) {
+      const newUserIds = data.users.map((x) => new mongoose.Types.ObjectId(x));
 
-    for (const userId of newUserIds) {
-      const user = await this.siteModel.findById(userId).exec();
+      for (const userId of newUserIds) {
+        const user = await this.siteModel.findById(userId).exec();
 
-      if (!user) throw new NotFoundException('User not found');
+        if (!user) throw new NotFoundException('User not found');
+      }
+
+      site.users = newUserIds;
     }
 
-    site.name = data.name;
-    site.admins = newAdminsIds;
-    site.users = newUserIds;
-    site.address = data.address;
-    site.province = data.province;
-    site.district = data.district;
-    site.mqttTopic = data.mqttTopic;
-
-    const res = await site.save();
+    if (data.name) site.name = data.name;
+    if (data.address) site.address = data.address;
+    if (data.province) site.province = data.province;
+    if (data.district) site.district = data.district;
 
     if (site.mqttTopic !== data.mqttTopic) {
-      await this.mqttService.unsubscribeForSite(site._id.toString());
-      await this.mqttService.subscribeForSite(data.mqttTopic);
+      site.mqttTopic = data.mqttTopic;
+      await site.save();
+
+      await this.mqttService.unsubscribeForSite(site._id);
+      await this.mqttService.subscribeForSite(site._id);
     }
 
-    return res;
+    return await site.save();
+  }
+
+  async deleteSite(id: mongoose.Types.ObjectId) {
+    const site = await this.siteModel.findById(id).exec();
+
+    if (!site) throw new NotFoundException('Site not found');
+
+    await this.mqttService.unsubscribeForSite(site._id);
+
+    // TODO: delete all sub-systems and sensors of this site.
+    // TODO: delete all references to this site in site-groups collection.
+
+    return await site.deleteOne();
   }
 }

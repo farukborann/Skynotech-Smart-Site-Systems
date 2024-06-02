@@ -1,9 +1,10 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
+
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { SystemTypeArray, SystemTypeType } from './sub-systems.enum';
 
 @Schema({ timestamps: true })
-export class SubSystem extends Document {
+export class SubSystem extends Document<mongoose.Types.ObjectId> {
   @Prop({
     required: true,
     enum: SystemTypeArray,

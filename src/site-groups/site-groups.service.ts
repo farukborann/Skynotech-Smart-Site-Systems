@@ -1,12 +1,13 @@
+import mongoose, { Model } from 'mongoose';
+import { RoleEnum } from 'src/access-control/access-control.enum';
+import { SessionUser } from 'src/auth/session.interface';
+import { SitesService } from 'src/sites/sites.service';
+import { UsersService } from 'src/users/users.service';
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { SiteGroup } from './site-groups.schema';
-import mongoose, { Model } from 'mongoose';
 import { CreateSiteGroupDTO, UpdateSiteGroupDTO } from './site-groups.dto';
-import { SitesService } from 'src/sites/sites.service';
-import { RoleEnum } from 'src/access-control/access-control.enum';
-import { UsersService } from 'src/users/users.service';
-import { SessionUser } from 'src/auth/session.interface';
+import { SiteGroup } from './site-groups.schema';
 
 @Injectable()
 export class SiteGroupsService {
@@ -21,7 +22,7 @@ export class SiteGroupsService {
     return await this.siteGroupModel.find({}).exec();
   }
 
-  async getSiteGroupById(id: string) {
+  async getSiteGroupById(id: mongoose.Types.ObjectId) {
     return await this.siteGroupModel.findById(id).exec();
   }
 
@@ -89,7 +90,10 @@ export class SiteGroupsService {
     });
   }
 
-  async updateSiteGroup(id: string, siteGroup: UpdateSiteGroupDTO) {
+  async updateSiteGroup(
+    id: mongoose.Types.ObjectId,
+    siteGroup: UpdateSiteGroupDTO,
+  ) {
     const _siteGroup = await this.siteGroupModel.findById(id);
 
     if (!_siteGroup) {
@@ -108,7 +112,7 @@ export class SiteGroupsService {
 
       // Check if site is not in the new site group sites (deleted site from site group)
       for (let i = 0; i < _siteGroup.sites.length; i++) {
-        if (!siteGroup.sites.includes(_siteGroup.sites[i].toString())) {
+        if (!siteGroup.sites.includes(_siteGroup.sites[i])) {
           const site = await this.siteGroupModel.findById(_siteGroup.sites[i]);
 
           site.admins = [];
@@ -135,7 +139,7 @@ export class SiteGroupsService {
 
       // Check if admin is not in the new site group admins (deleted admin from site group)
       for (let i = 0; i < _siteGroup.admins.length; i++) {
-        if (!siteGroup.admins.includes(_siteGroup.admins[i].toString())) {
+        if (!siteGroup.admins.includes(_siteGroup.admins[i])) {
           const adminSites = await this.sitesServices.getUsersSites({
             role: RoleEnum.USER,
             _id: _siteGroup.admins[i].toString(),
@@ -168,7 +172,7 @@ export class SiteGroupsService {
 
       // Check if user is not in the new site group users (deleted user from site group)
       for (let i = 0; i < _siteGroup.users.length; i++) {
-        if (!siteGroup.users.includes(_siteGroup.users[i].toString())) {
+        if (!siteGroup.users.includes(_siteGroup.users[i])) {
           const userSites = await this.sitesServices.getUsersSites({
             role: RoleEnum.USER,
             _id: _siteGroup.users[i].toString(),
@@ -196,7 +200,7 @@ export class SiteGroupsService {
     return await _siteGroup.save();
   }
 
-  async deleteSiteGroup(id: string, user: SessionUser) {
+  async deleteSiteGroup(id: mongoose.Types.ObjectId, user: SessionUser) {
     const siteGroup = await this.siteGroupModel.findById(id);
 
     if (!siteGroup) {
@@ -205,7 +209,7 @@ export class SiteGroupsService {
 
     for (let i = 0; i < siteGroup.sites.length; i++) {
       const site = await this.sitesServices.getSiteById(
-        siteGroup.sites[i].toString(),
+        siteGroup.sites[i],
         user,
       );
 

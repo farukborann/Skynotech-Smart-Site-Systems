@@ -1,9 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import MongoStore = require('connect-mongo');
 import * as session from 'express-session';
 import * as passport from 'passport';
+
 import { ValidationPipe } from '@nestjs/common';
-import MongoStore = require('connect-mongo');
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -26,6 +27,10 @@ async function bootstrap() {
       }),
     }),
   );
+  app.enableCors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  });
   app.use(passport.initialize());
   app.use(passport.session());
 

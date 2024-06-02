@@ -1,3 +1,9 @@
+import mongoose from 'mongoose';
+import { Roles } from 'src/access-control/access-control.decorator';
+import { RoleEnum } from 'src/access-control/access-control.enum';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { ParseObjectIdPipe } from 'src/pipes/ParseObjectIdPipe';
+
 import {
   Body,
   Controller,
@@ -9,11 +15,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { SiteGroupsService } from './site-groups.service';
 import { CreateSiteGroupDTO } from './site-groups.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { Roles } from 'src/access-control/access-control.decorator';
-import { RoleEnum } from 'src/access-control/access-control.enum';
+import { SiteGroupsService } from './site-groups.service';
 
 @Controller('site-groups')
 export class SiteGroupsController {
@@ -29,7 +32,9 @@ export class SiteGroupsController {
   @Get(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
-  async getSiteGroupById(@Param('id') id: string) {
+  async getSiteGroupById(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+  ) {
     return await this.siteGroupsService.getSiteGroupById(id);
   }
 
@@ -44,7 +49,7 @@ export class SiteGroupsController {
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
   async updateSiteGroup(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Body() siteGroup: CreateSiteGroupDTO,
   ) {
     return await this.siteGroupsService.updateSiteGroup(id, siteGroup);
@@ -53,7 +58,10 @@ export class SiteGroupsController {
   @Delete(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
-  async deleteSiteGroup(@Req() req, @Param('id') id: string) {
+  async deleteSiteGroup(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+    @Req() req,
+  ) {
     return await this.siteGroupsService.deleteSiteGroup(id, req.user);
   }
 }

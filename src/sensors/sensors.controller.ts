@@ -1,3 +1,9 @@
+import mongoose from 'mongoose';
+import { Roles } from 'src/access-control/access-control.decorator';
+import { RoleEnum } from 'src/access-control/access-control.enum';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { ParseObjectIdPipe } from 'src/pipes/ParseObjectIdPipe';
+
 import {
   Controller,
   Get,
@@ -9,57 +15,62 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { SensorsService } from './sensors.service';
 import { CreateSensorDTO } from './sensors.dto';
-import { Roles } from 'src/access-control/access-control.decorator';
-import { RoleEnum } from 'src/access-control/access-control.enum';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { SensorsService } from './sensors.service';
 
-// update subsubriptions for mqtt topics on create, update, delete
 @Controller('sensors')
 export class SensorsController {
   constructor(private readonly sensorsService: SensorsService) {}
 
-  @Get()
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
+  @Get()
   async getAllSensors() {
     return this.sensorsService.getAllSensors();
   }
 
-  @Post()
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
+  @Post()
   async createSensor(@Body() sensor: CreateSensorDTO) {
     return this.sensorsService.createSensor(sensor);
   }
 
-  @Patch()
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
-  async updateSensor(@Param('id') id: string, @Body() sensor: CreateSensorDTO) {
+  @Patch(':id')
+  async updateSensor(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+    @Body() sensor: CreateSensorDTO,
+  ) {
     return this.sensorsService.updateSensor(id, sensor);
   }
 
-  @Delete(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
-  async deleteSensor(@Param('id') id: string) {
+  @Delete(':id')
+  async deleteSensor(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+  ) {
     return this.sensorsService.deleteSensor(id);
   }
 
-  @Get(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
-  async getSensorById(@Param('id') id: string, @Req() req) {
+  @Get(':id')
+  async getSensorById(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+    @Req() req,
+  ) {
     return this.sensorsService.getSensorById(id, req.user);
   }
 
-  @Get('sub-system/:subSystemId')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
+  @Get('sub-system/:subSystemId')
   async getSensorsBySubSystemId(
-    @Param('subSystemId') subSystemId: string,
+    @Param('subSystemId', ParseObjectIdPipe)
+    subSystemId: mongoose.Types.ObjectId,
     @Req() req,
   ) {
     return this.sensorsService.getSensorsBySubSystemId(subSystemId, req.user);

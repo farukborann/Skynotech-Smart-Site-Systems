@@ -1,3 +1,9 @@
+import mongoose from 'mongoose';
+import { Roles } from 'src/access-control/access-control.decorator';
+import { RoleEnum } from 'src/access-control/access-control.enum';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { ParseObjectIdPipe } from 'src/pipes/ParseObjectIdPipe';
+
 import {
   Controller,
   Get,
@@ -9,15 +15,12 @@ import {
   Param,
   Body,
 } from '@nestjs/common';
-import { SubSystemsService } from './sub-systems.service';
 import {
   CreateSubSystemDTO,
   UpdateIgnitionStatusDTO,
   UpdateSubSystemDTO,
 } from './sub-systems.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { Roles } from 'src/access-control/access-control.decorator';
-import { RoleEnum } from 'src/access-control/access-control.enum';
+import { SubSystemsService } from './sub-systems.service';
 
 @Controller('sub-systems')
 export class SubSystemsController {
@@ -33,14 +36,20 @@ export class SubSystemsController {
   @Get('site/:siteId')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
-  async getSitesSubSystems(@Param('siteId') siteId: string, @Req() req) {
+  async getSitesSubSystems(
+    @Param('siteId', ParseObjectIdPipe) siteId: mongoose.Types.ObjectId,
+    @Req() req,
+  ) {
     return await this.subSystemsService.getSitesSubSystems(siteId, req.user);
   }
 
   @Get(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
-  async getSubSystemById(@Param('id') id: string, @Req() req) {
+  async getSubSystemById(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+    @Req() req,
+  ) {
     return await this.subSystemsService.getSubSystemById(id, req.user);
   }
 
@@ -55,7 +64,7 @@ export class SubSystemsController {
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
   async updateSubSystem(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Body() data: UpdateSubSystemDTO,
   ) {
     return await this.subSystemsService.updateSubSystem(id, data);
@@ -64,7 +73,9 @@ export class SubSystemsController {
   @Delete(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
-  async deleteSubSystem(@Param('id') id: string) {
+  async deleteSubSystem(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+  ) {
     return await this.subSystemsService.deleteSubSystem(id);
   }
 
@@ -72,7 +83,7 @@ export class SubSystemsController {
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
   async updateIgnitionStatus(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Body() data: UpdateIgnitionStatusDTO,
     @Req() req,
   ) {

@@ -1,12 +1,16 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import mongoose from 'mongoose';
 import { connect, MqttClient } from 'mqtt';
 import { SystemSession } from 'src/auth/session.interface';
+import { Scenario } from 'src/scenarios/scenarios.schema';
+import { ScenariosService } from 'src/scenarios/scenarios.service';
 import { Sensor } from 'src/sensors/sensors.schema';
 import { SensorsService } from 'src/sensors/sensors.service';
 import { Site } from 'src/sites/sites.schema';
 import { SitesService } from 'src/sites/sites.service';
 import { SubSystem } from 'src/sub-systems/sub-systems.schema';
 import { SubSystemsService } from 'src/sub-systems/sub-systems.service';
+
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class MqttService {
@@ -15,8 +19,14 @@ export class MqttService {
   // topic -> sensorId
   private topicSensors: { [key: string]: string } = {};
 
+  // sensorId -> topic
+  private sensorTopics: { [key: string]: string } = {};
+
   // sensorId -> lastValue
   private lastValues: { [key: string]: string } = {};
+
+  // sensorId -> scenario[]
+  private sensorScenarios: { [key: string]: Scenario[] } = {};
 
   readonly MQTT_OPTIONS = {
     host: 'skynotech-0u674v.a01.euc1.aws.hivemq.cloud',
@@ -41,8 +51,12 @@ export class MqttService {
   constructor(
     @Inject(forwardRef(() => SitesService))
     private readonly sitesService: SitesService,
+    @Inject(forwardRef(() => SubSystemsService))
     private readonly subSystemsService: SubSystemsService,
+    @Inject(forwardRef(() => SensorsService))
     private readonly sensorsService: SensorsService,
+    @Inject(forwardRef(() => ScenariosService))
+    private readonly scenariosService: ScenariosService,
   ) {
     this.client = connect(`mqtts://${this.MQTT_OPTIONS.host}`, {
       port: this.MQTT_OPTIONS.port,
@@ -50,14 +64,11 @@ export class MqttService {
       password: this.MQTT_OPTIONS.password,
       connectTimeout: this.MQTT_OPTIONS.connectTimeout,
     });
-
     this.client.on('connect', async () => {
       console.log('Connected to MQTT broker');
-
       const sites = await this.sitesService.getAllSites();
-
       for (const site of sites) {
-        await this.subscribeForSite(site._id.toString());
+        await this.subscribeForSite(site._id);
       }
     });
 
@@ -66,9 +77,18 @@ export class MqttService {
     });
 
     this.client.on('message', (topic, message) => {
-      const sensorId = this.topicSensors[topic];
+      if (
+        !this.topicSensors[topic] ||
+        mongoose.Types.ObjectId.isValid(this.topicSensors[topic])
+      ) {
+        return;
+      }
 
-      this.lastValues[sensorId] = message.toString();
+      const sensorId = new mongoose.Types.ObjectId(this.topicSensors[topic]);
+
+      this.lastValues[sensorId.toString()] = message.toString();
+
+      this.processSensorValueForScenario(sensorId, message.toString());
     });
 
     this.client.on('close', () => {
@@ -84,8 +104,8 @@ export class MqttService {
     });
   }
 
-  async unsubscribeForSensor(sensorId: string) {
-    const subscriptionKey = this.topicSensors[sensorId];
+  async unsubscribeForSensor(sensorId: mongoose.Types.ObjectId) {
+    const subscriptionKey = this.sensorTopics[sensorId.toString()];
 
     this.client?.unsubscribe(subscriptionKey);
 
@@ -93,44 +113,51 @@ export class MqttService {
       delete this.lastValues[subscriptionKey];
     }
 
-    delete this.topicSensors[sensorId];
+    delete this.sensorTopics[sensorId.toString()];
+    delete this.topicSensors[subscriptionKey];
+
+    console.log(`Unsubscribed from ${subscriptionKey} (Sensor)`);
   }
 
-  async unsubscribeForSubSystem(subSystemId: string) {
+  async unsubscribeForSubSystem(subSystemId: mongoose.Types.ObjectId) {
     const sensors = await this.sensorsService.getSensorsBySubSystemId(
       subSystemId,
       SystemSession,
     );
 
     for (const sensor of sensors) {
-      await this.unsubscribeForSensor(sensor._id.toString());
+      await this.unsubscribeForSensor(sensor._id);
     }
+
+    console.log(`Unsubscribed from ${subSystemId} (SubSystem)`);
   }
 
-  async unsubscribeForSite(siteId: string) {
+  async unsubscribeForSite(siteId: mongoose.Types.ObjectId) {
     const subSystems = await this.subSystemsService.getSitesSubSystems(
       siteId,
       SystemSession,
     );
 
     for (const subSystem of subSystems) {
-      await this.unsubscribeForSubSystem(subSystem._id.toString());
+      await this.unsubscribeForSubSystem(subSystem._id);
     }
+
+    console.log(`Unsubscribed from ${siteId} (Site)`);
   }
 
-  async subscribeForSensor(sensorId: string) {
+  async subscribeForSensor(sensorId: mongoose.Types.ObjectId) {
     const sensor = await this.sensorsService.getSensorById(
       sensorId,
       SystemSession,
     );
 
     const subSystem = await this.subSystemsService.getSubSystemById(
-      sensor.subSystemId.toString(),
+      sensor.subSystemId,
       SystemSession,
     );
 
     const site = await this.sitesService.getSiteById(
-      subSystem.siteId.toString(),
+      subSystem.siteId,
       SystemSession,
     );
 
@@ -138,50 +165,54 @@ export class MqttService {
 
     this.client?.subscribe(subscriptionKey);
 
-    this.topicSensors[subscriptionKey] = sensorId;
+    this.topicSensors[subscriptionKey] = sensorId.toString();
+    this.sensorTopics[sensorId.toString()] = subscriptionKey;
 
     console.log(`Subscribed to ${subscriptionKey} (Sensor)`);
   }
 
-  async subscribeForSubSystem(subSystemId: string) {
+  async subscribeForSubSystem(subSystemId: mongoose.Types.ObjectId) {
     const subSystem = await this.subSystemsService.getSubSystemById(
       subSystemId,
       SystemSession,
     );
 
     const sensors = await this.sensorsService.getSensorsBySubSystemId(
-      subSystem._id.toString(),
+      subSystem._id,
       SystemSession,
     );
 
     for (const sensor of sensors) {
-      await this.subscribeForSensor(sensor._id.toString());
+      await this.subscribeForSensor(sensor._id);
     }
 
     console.log(`Subscribed to ${subSystemId} (SubSystem)`);
   }
 
-  async subscribeForSite(siteId: string) {
+  async subscribeForSite(siteId: mongoose.Types.ObjectId) {
     const subSystems = await this.subSystemsService.getSitesSubSystems(
       siteId,
       SystemSession,
     );
 
     for (const subSystem of subSystems) {
-      await this.subscribeForSubSystem(subSystem._id.toString());
+      await this.subscribeForSubSystem(subSystem._id);
     }
 
     console.log(`Subscribed to ${siteId} (Site)`);
   }
 
-  async updateIgnitionStatus(subSystemId: string, ignitionStatuses: object) {
+  async updateIgnitionStatus(
+    subSystemId: mongoose.Types.ObjectId,
+    ignitionStatuses: object,
+  ) {
     const subSystem = await this.subSystemsService.getSubSystemById(
       subSystemId,
       SystemSession,
     );
 
     const site = await this.sitesService.getSiteById(
-      subSystem.siteId.toString(),
+      subSystem.siteId,
       SystemSession,
     );
 
@@ -189,5 +220,40 @@ export class MqttService {
     const data = JSON.stringify({ [this.IGNITION_JSON_KEY]: ignitionStatuses });
 
     this.client?.publish(ignitionSubscriptionKey, data);
+  }
+
+  // Scenario functions
+  async updateSensorsScenarios(sensorId: mongoose.Types.ObjectId) {
+    const scenarios = await this.scenariosService.getScenariosBySensorId(
+      sensorId,
+      SystemSession,
+    );
+
+    this.sensorScenarios[sensorId.toString()] = scenarios.map((scenario) =>
+      scenario.toObject(),
+    );
+
+    console.log(
+      `Updated scenarios for sensor ${sensorId} (${scenarios.length} scenarios)`,
+    );
+  }
+
+  async deleteSensorsScenarios(sensorId: mongoose.Types.ObjectId) {
+    if (this.sensorScenarios[sensorId.toString()]) {
+      delete this.sensorScenarios[sensorId.toString()];
+    }
+  }
+
+  async processSensorValueForScenario(
+    sensorId: mongoose.Types.ObjectId,
+    value: string,
+  ) {
+    if (!this.sensorScenarios[sensorId.toString()]) {
+      return;
+    }
+
+    for (const scenario of this.sensorScenarios[sensorId.toString()]) {
+      // TODO: Implement scenario processing
+    }
   }
 }

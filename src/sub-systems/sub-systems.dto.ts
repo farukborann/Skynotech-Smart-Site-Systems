@@ -1,10 +1,7 @@
-import {
-  IsBoolean,
-  IsEnum,
-  IsMongoId,
-  IsNumber,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsString } from 'class-validator';
+import mongoose from 'mongoose';
+import { IsMongoId } from 'src/decorators/IsMongoId';
+
 import { PartialType } from '@nestjs/mapped-types';
 import { SystemTypeEnum } from './sub-systems.enum';
 
@@ -13,7 +10,7 @@ export class CreateSubSystemDTO {
   systemType: string;
 
   @IsMongoId()
-  siteId: string;
+  siteId: mongoose.Types.ObjectId;
 
   @IsString()
   mqttTopic: string;

@@ -1,4 +1,7 @@
-import { IsMongoId, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
+import mongoose from 'mongoose';
+import { IsMongoId } from 'src/decorators/IsMongoId';
+
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateSiteGroupDTO {
@@ -6,16 +9,16 @@ export class CreateSiteGroupDTO {
   name: string;
 
   @IsMongoId({ each: true })
-  sites: string[];
+  sites: mongoose.Types.ObjectId[];
 
   @IsMongoId({ each: true })
-  siteGroupAdmins: string[];
+  siteGroupAdmins: mongoose.Types.ObjectId[];
 
   @IsMongoId({ each: true })
-  admins: string[];
+  admins: mongoose.Types.ObjectId[];
 
   @IsMongoId({ each: true })
-  users: string[];
+  users: mongoose.Types.ObjectId[];
 }
 
 export class UpdateSiteGroupDTO extends PartialType(CreateSiteGroupDTO) {}

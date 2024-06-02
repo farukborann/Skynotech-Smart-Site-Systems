@@ -1,4 +1,7 @@
-import { IsMongoId, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
+import mongoose from 'mongoose';
+import { IsMongoId } from 'src/decorators/IsMongoId';
+
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateSensorDTO {
@@ -6,7 +9,7 @@ export class CreateSensorDTO {
   name: string;
 
   @IsMongoId()
-  subSystemId: string;
+  subSystemId: mongoose.Types.ObjectId;
 
   @IsString()
   mqttTopic: string;

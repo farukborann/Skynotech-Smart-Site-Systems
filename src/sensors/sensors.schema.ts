@@ -1,8 +1,9 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
 
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+
 @Schema({ timestamps: true })
-export class Sensor extends Document {
+export class Sensor extends Document<mongoose.Types.ObjectId> {
   @Prop({
     required: true,
     type: String,

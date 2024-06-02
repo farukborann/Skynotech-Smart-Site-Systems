@@ -1,4 +1,6 @@
 import { IsMongoId, IsString } from 'class-validator';
+import mongoose from 'mongoose';
+
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateSiteDTO {
@@ -18,10 +20,10 @@ export class CreateSiteDTO {
   mqttTopic: string;
 
   @IsMongoId({ each: true })
-  admins: string[];
+  admins: mongoose.Types.ObjectId[];
 
   @IsMongoId({ each: true })
-  users: string[];
+  users: mongoose.Types.ObjectId[];
 }
 
 export class UpdateSiteDTO extends PartialType(CreateSiteDTO) {}

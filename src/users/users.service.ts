@@ -1,14 +1,32 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { User } from './users.schema';
-import { CreateUserDTO } from './users.dto';
 import * as bcrypt from 'bcrypt';
+import mongoose, { Model } from 'mongoose';
 import { RoleEnum } from 'src/access-control/access-control.enum';
+import { SessionUser } from 'src/auth/session.interface';
+
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import {
+  CreateUserDTO,
+  UpdateUserDTO,
+  UpdatePrivacySettingsDTO,
+} from './users.dto';
+import { User } from './users.schema';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel('users') private readonly UserModel: Model<User>) {}
+
+  async getUserByEmail(email: string) {
+    return await this.UserModel.findOne({ email });
+  }
+
+  async getUserById(id: mongoose.Types.ObjectId) {
+    return await this.UserModel.findById(id);
+  }
+
+  async getSuperAdmins() {
+    return await this.UserModel.find({ role: RoleEnum.SUPER_ADMIN });
+  }
 
   async createUser(data: CreateUserDTO) {
     const saltOrRounds = 10;
@@ -18,20 +36,81 @@ export class UsersService {
       ...data,
       password: hashedPassword,
     });
-    delete user.password;
 
-    return user;
+    return { ...user.toObject(), password: undefined };
   }
 
-  async getUserByEmail(email: string) {
-    return await this.UserModel.findOne({ email });
+  async updateUser(
+    id: mongoose.Types.ObjectId,
+    data: UpdateUserDTO,
+    reqUser: SessionUser,
+  ) {
+    if (
+      reqUser.role !== RoleEnum.SUPER_ADMIN &&
+      reqUser._id !== id.toString()
+    ) {
+      throw new NotFoundException(
+        'You do not have permission to update this user',
+      );
+    }
+
+    const user = await this.UserModel.findById(id);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (data.password) {
+      const saltOrRounds = 10;
+      data.password = await bcrypt.hash(data.password, saltOrRounds);
+    }
+
+    Object.assign(user, data);
+    await user.save();
+
+    return {
+      ...user.toObject(),
+      password: undefined,
+      privacySettings: undefined,
+    };
   }
 
-  async getUserById(id: string) {
-    return await this.UserModel.findById(id);
+  async updatePrivacySettings(
+    data: UpdatePrivacySettingsDTO,
+    reqUser: SessionUser,
+  ) {
+    const user = await this.UserModel.findById(reqUser._id);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    Object.assign(user, { privacySettings: data });
+    await user.save();
+
+    return {
+      ...user.toObject(),
+      password: undefined,
+    };
   }
 
-  async getSuperAdmins() {
-    return await this.UserModel.find({ role: RoleEnum.SUPER_ADMIN });
+  async deleteUser(id: mongoose.Types.ObjectId, reqUser: SessionUser) {
+    if (
+      reqUser.role !== RoleEnum.SUPER_ADMIN &&
+      reqUser._id !== id.toString()
+    ) {
+      throw new NotFoundException(
+        'You do not have permission to delete this user',
+      );
+    }
+
+    const user = await this.UserModel.findById(id);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await user.deleteOne();
+    return { message: 'User deleted successfully' };
   }
 }
