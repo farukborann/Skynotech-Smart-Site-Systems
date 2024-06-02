@@ -15,49 +15,49 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CreateSiteGroupDTO } from './site-groups.dto';
+import { CreateSiteGroupDTO, UpdateSiteGroupDTO } from './site-groups.dto';
 import { SiteGroupsService } from './site-groups.service';
 
 @Controller('site-groups')
 export class SiteGroupsController {
   constructor(private readonly siteGroupsService: SiteGroupsService) {}
 
-  @Get()
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
+  @Get()
   async getAllSiteGroups() {
     return await this.siteGroupsService.getAllSiteGroups();
   }
 
-  @Get(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
+  @Get(':id')
   async getSiteGroupById(
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
   ) {
     return await this.siteGroupsService.getSiteGroupById(id);
   }
 
-  @Post()
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
-  async createSiteGroup(@Body() siteGroup: CreateSiteGroupDTO) {
-    return await this.siteGroupsService.createSiteGroup(siteGroup);
-  }
-
   @Patch(':id')
-  @UseGuards(AuthGuard)
-  @Roles(RoleEnum.SUPER_ADMIN)
   async updateSiteGroup(
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
-    @Body() siteGroup: CreateSiteGroupDTO,
+    @Body() siteGroup: UpdateSiteGroupDTO,
   ) {
     return await this.siteGroupsService.updateSiteGroup(id, siteGroup);
   }
 
-  @Delete(':id')
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
+  @Post()
+  async createSiteGroup(@Body() siteGroup: CreateSiteGroupDTO) {
+    return await this.siteGroupsService.createSiteGroup(siteGroup);
+  }
+
+  @UseGuards(AuthGuard)
+  @Roles(RoleEnum.SUPER_ADMIN)
+  @Delete(':id')
   async deleteSiteGroup(
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Req() req,

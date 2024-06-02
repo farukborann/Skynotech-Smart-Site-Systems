@@ -23,7 +23,13 @@ export class SiteGroupsService {
   }
 
   async getSiteGroupById(id: mongoose.Types.ObjectId) {
-    return await this.siteGroupModel.findById(id).exec();
+    const siteGroup = await this.siteGroupModel.findById(id).exec();
+
+    if (!siteGroup) {
+      throw new NotFoundException('Site Group Not Found');
+    }
+
+    return siteGroup;
   }
 
   async createSiteGroup(siteGroup: CreateSiteGroupDTO) {

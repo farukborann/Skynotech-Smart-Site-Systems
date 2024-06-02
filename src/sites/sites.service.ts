@@ -37,7 +37,7 @@ export class SitesService {
     )
       throw new ForbiddenException('User has no access to this site');
 
-    return true;
+    return site;
   }
 
   async getAllSites() {
@@ -52,12 +52,7 @@ export class SitesService {
   }
 
   async getSiteById(id: mongoose.Types.ObjectId, user: SessionUser) {
-    if (!(await this.checkUserAccessToSite(id, user)))
-      throw new ForbiddenException('User has no access to this site');
-
-    const site = await this.siteModel.findById(id).exec();
-
-    return site;
+    return await this.checkUserAccessToSite(id, user);
   }
 
   async createSite(data: CreateSiteDTO) {

@@ -5,7 +5,6 @@ import { MqttService } from 'src/mqtt/mqtt.service';
 import { SubSystemsService } from 'src/sub-systems/sub-systems.service';
 
 import {
-  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -32,10 +31,12 @@ export class SensorsService {
 
     if (!sensor) throw new NotFoundException('Sensor not found');
 
-    return this.subSystemsService.checkUserAccessToSubSystem(
+    await this.subSystemsService.checkUserAccessToSubSystem(
       sensor.subSystemId,
       user,
     );
+
+    return sensor;
   }
 
   async createSensor(sensor: CreateSensorDTO) {
@@ -63,23 +64,14 @@ export class SensorsService {
   }
 
   async getSensorById(id: mongoose.Types.ObjectId, user: SessionUser) {
-    if (!(await this.checkUserAccessToSensor(id, user)))
-      throw new ForbiddenException('User has no access to this sensor');
-
-    return this.sensorsModel.findById(id).exec();
+    return await this.checkUserAccessToSensor(id, user);
   }
 
   async getSensorsBySubSystemId(
     subSystemId: mongoose.Types.ObjectId,
     user: SessionUser,
   ) {
-    if (
-      !(await this.subSystemsService.checkUserAccessToSubSystem(
-        subSystemId,
-        user,
-      ))
-    )
-      throw new ForbiddenException('User has no access to this subSystem');
+    await this.subSystemsService.checkUserAccessToSubSystem(subSystemId, user);
 
     return this.sensorsModel
       .find({ subSystemId: new moongose.Types.ObjectId(subSystemId) })

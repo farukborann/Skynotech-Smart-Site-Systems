@@ -1,5 +1,6 @@
-import { IsMongoId, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 import mongoose from 'mongoose';
+import { IsMongoIdArray } from 'src/decorators/IsMongoId';
 
 import { PartialType } from '@nestjs/mapped-types';
 
@@ -19,10 +20,10 @@ export class CreateSiteDTO {
   @IsString()
   mqttTopic: string;
 
-  @IsMongoId({ each: true })
+  @IsMongoIdArray()
   admins: mongoose.Types.ObjectId[];
 
-  @IsMongoId({ each: true })
+  @IsMongoIdArray()
   users: mongoose.Types.ObjectId[];
 }
 

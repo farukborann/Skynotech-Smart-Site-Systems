@@ -37,7 +37,9 @@ export class SubSystemsService {
 
     if (!subSystem) throw new NotFoundException('SubSystem not found');
 
-    return this.sitesServices.checkUserAccessToSite(subSystem.siteId, user);
+    await this.sitesServices.checkUserAccessToSite(subSystem.siteId, user);
+
+    return subSystem;
   }
 
   async getAllSubSystems() {
@@ -45,18 +47,11 @@ export class SubSystemsService {
   }
 
   async getSubSystemById(id: mongoose.Types.ObjectId, user: SessionUser) {
-    if (!(await this.checkUserAccessToSubSystem(id, user))) {
-      throw new ForbiddenException('User has no access to this sub-system');
-    }
-    return await this.subSystemsModel.findById(id).exec();
+    return await this.checkUserAccessToSubSystem(id, user);
   }
 
   async getSitesSubSystems(siteId: mongoose.Types.ObjectId, user: SessionUser) {
-    if (!(await this.sitesServices.checkUserAccessToSite(siteId, user))) {
-      throw new ForbiddenException('User has no access to this site');
-    }
-
-    const site = await this.sitesServices.getSiteById(siteId, user);
+    const site = await this.sitesServices.checkUserAccessToSite(siteId, user);
 
     return await this.subSystemsModel.find({ siteId: site._id }).exec();
   }
@@ -152,9 +147,7 @@ export class SubSystemsService {
       throw new ForbiddenException('SubSystem not found');
     }
 
-    if (!(await this.checkUserAccessToSubSystem(subSystem._id, user))) {
-      throw new ForbiddenException('User has no access to this site');
-    }
+    await this.checkUserAccessToSubSystem(subSystem._id, user);
 
     const lastIgnitionStatuses = subSystem.lastIgnitionStatuses;
 

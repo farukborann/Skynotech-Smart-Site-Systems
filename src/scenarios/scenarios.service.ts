@@ -1,10 +1,10 @@
 import mongoose, { Model } from 'mongoose';
-import { SessionUser, SystemSession } from 'src/auth/session.interface';
+import { SessionUser } from 'src/auth/session.interface';
 import { MqttService } from 'src/mqtt/mqtt.service';
 import { SensorsService } from 'src/sensors/sensors.service';
 
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreateScenarioDTO, UpdateScenarioDTO } from './scenarios.dto';
 import { Scenario } from './scenarios.schema';
@@ -19,41 +19,32 @@ export class ScenariosService {
     private readonly mqttService: MqttService,
   ) {}
 
+  async checkUserAccessToScenario(
+    scenarioId: mongoose.Types.ObjectId,
+    user: SessionUser,
+  ) {
+    const scenario = await this.scenariosModel.findById(scenarioId).exec();
+
+    if (!scenario) {
+      throw new NotFoundException('Scenario not found');
+    }
+
+    await this.sensorsService.checkUserAccessToSensor(scenario.sensorId, user);
+
+    return scenario;
+  }
+
   async getScenariosBySensorId(
     sensorId: mongoose.Types.ObjectId,
     user: SessionUser,
   ) {
-    const sensor = this.sensorsService.getSensorById(sensorId, SystemSession);
-
-    if (!sensor) {
-      throw new NotFoundException('Sensor not found');
-    }
-
-    if (!(await this.sensorsService.checkUserAccessToSensor(sensorId, user))) {
-      throw new ForbiddenException('You do not have access to this sensor');
-    }
+    await this.sensorsService.checkUserAccessToSensor(sensorId, user);
 
     return this.scenariosModel.find({ sensorId });
   }
 
   async createScenario(scenario: CreateScenarioDTO, user: SessionUser) {
-    const sensor = this.sensorsService.getSensorById(
-      scenario.sensorId,
-      SystemSession,
-    );
-
-    if (!sensor) {
-      throw new NotFoundException('Sensor not found');
-    }
-
-    if (
-      !(await this.sensorsService.checkUserAccessToSensor(
-        scenario.sensorId,
-        user,
-      ))
-    ) {
-      throw new ForbiddenException('You do not have access to this sensor');
-    }
+    await this.sensorsService.checkUserAccessToSensor(scenario.sensorId, user);
 
     const res = this.scenariosModel.create(scenario);
 
@@ -67,22 +58,7 @@ export class ScenariosService {
     data: UpdateScenarioDTO,
     user: SessionUser,
   ) {
-    const sensor = await this.sensorsService.getSensorById(
-      data.sensorId,
-      SystemSession,
-    );
-
-    if (!sensor) {
-      throw new NotFoundException('Sensor not found');
-    }
-
-    if (
-      !(await this.sensorsService.checkUserAccessToSensor(data.sensorId, user))
-    ) {
-      throw new ForbiddenException('You do not have access to this sensor');
-    }
-
-    const scenario = await this.scenariosModel.findById(scenarioId);
+    const scenario = await this.checkUserAccessToScenario(scenarioId, user);
 
     if (!scenario) {
       throw new NotFoundException('Scenario not found');
@@ -100,25 +76,10 @@ export class ScenariosService {
   }
 
   async deleteScenario(scenarioId: mongoose.Types.ObjectId, user: SessionUser) {
-    const scenario = await this.scenariosModel.findById(scenarioId);
-
-    if (!scenario) {
-      throw new NotFoundException('Scenario not found');
-    }
-
-    if (
-      !(await this.sensorsService.checkUserAccessToSensor(
-        scenario.sensorId,
-        user,
-      ))
-    ) {
-      throw new ForbiddenException('You do not have access to this sensor');
-    }
-
-    const res = this.scenariosModel.findByIdAndDelete(scenarioId);
+    const scenario = await this.checkUserAccessToScenario(scenarioId, user);
 
     await this.mqttService.updateSensorsScenarios(scenario.sensorId);
 
-    return res;
+    return await scenario.deleteOne();
   }
 }

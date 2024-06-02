@@ -1,6 +1,6 @@
-import { IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 import mongoose from 'mongoose';
-import { IsMongoId } from 'src/decorators/IsMongoId';
+import { IsMongoIdArray } from 'src/decorators/IsMongoId';
 
 import { PartialType } from '@nestjs/mapped-types';
 
@@ -8,16 +8,20 @@ export class CreateSiteGroupDTO {
   @IsString()
   name: string;
 
-  @IsMongoId({ each: true })
+  @IsNotEmpty()
+  @IsMongoIdArray()
   sites: mongoose.Types.ObjectId[];
 
-  @IsMongoId({ each: true })
+  @IsNotEmpty()
+  @IsMongoIdArray()
   siteGroupAdmins: mongoose.Types.ObjectId[];
 
-  @IsMongoId({ each: true })
+  @IsNotEmpty()
+  @IsMongoIdArray()
   admins: mongoose.Types.ObjectId[];
 
-  @IsMongoId({ each: true })
+  @IsNotEmpty()
+  @IsMongoIdArray()
   users: mongoose.Types.ObjectId[];
 }
 
