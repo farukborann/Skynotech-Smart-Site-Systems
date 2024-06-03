@@ -19,6 +19,7 @@ export class CreateScenarioDTO {
   name: string;
 
   @IsMongoId()
+  @IsNotEmpty()
   sensorId: mongoose.Types.ObjectId;
 
   @IsNumber()

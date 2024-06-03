@@ -40,7 +40,8 @@ import { UsersService } from './users/users.service';
   ],
 })
 // TODO: Check all endpoints has access control
-// TODO: Check all endpoints has update mqqtt service
+// TODO: Check all endpoints has update mqtt service
+// TODO: Check all delete endpoints has return same object
 export class AppModule {
   constructor(private readonly usersService: UsersService) {}
 
@@ -56,6 +57,8 @@ export class AppModule {
       await this.usersService.createUser({
         email: 'iam@superadmin.com',
         password: 'superadminpass123',
+        firstName: 'Super',
+        lastName: 'Admin',
         phoneNumber: '',
         role: RoleEnum.SUPER_ADMIN,
       });

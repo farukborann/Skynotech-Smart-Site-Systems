@@ -2,6 +2,8 @@ import mongoose, { Model } from 'mongoose';
 import { SessionUser } from 'src/auth/session.interface';
 import { MqttService } from 'src/mqtt/mqtt.service';
 import { SensorsService } from 'src/sensors/sensors.service';
+import { SitesService } from 'src/sites/sites.service';
+import { SubSystemsService } from 'src/sub-systems/sub-systems.service';
 
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { NotFoundException } from '@nestjs/common';
@@ -13,6 +15,10 @@ import { Scenario } from './scenarios.schema';
 export class ScenariosService {
   constructor(
     @InjectModel('Scenarios') private readonly scenariosModel: Model<Scenario>,
+    @Inject(forwardRef(() => SitesService))
+    private readonly sitesService: SitesService,
+    @Inject(forwardRef(() => SubSystemsService))
+    private readonly subSystemsService: SubSystemsService,
     @Inject(forwardRef(() => SensorsService))
     private readonly sensorsService: SensorsService,
     @Inject(forwardRef(() => MqttService))
@@ -41,6 +47,44 @@ export class ScenariosService {
     await this.sensorsService.checkUserAccessToSensor(sensorId, user);
 
     return this.scenariosModel.find({ sensorId });
+  }
+
+  async getUsersScenarios(user: SessionUser) {
+    const scenarios = [];
+
+    const sites = await this.sitesService.getUsersSites(user);
+
+    for (const site of sites) {
+      const subSystems = await this.subSystemsService.getSitesSubSystems(
+        site._id,
+        user,
+      );
+
+      for (const subSystem of subSystems) {
+        const sensors = await this.sensorsService.getSensorsBySubSystemId(
+          subSystem._id,
+          user,
+        );
+
+        for (const sensor of sensors) {
+          const sensorScenarios = await this.getScenariosBySensorId(
+            sensor._id,
+            user,
+          );
+
+          scenarios.push(
+            ...sensorScenarios.map((scenario) => ({
+              scenario,
+              sensor,
+              subSystem,
+              site,
+            })),
+          );
+        }
+      }
+    }
+
+    return scenarios;
   }
 
   async createScenario(scenario: CreateScenarioDTO, user: SessionUser) {

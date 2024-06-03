@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import {
   CreateUserDTO,
+  GetExternalUserDTO,
   UpdatePrivacySettingsDTO,
   UpdateUserDTO,
 } from './users.dto';
@@ -41,7 +42,7 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Get('/profile')
-  test(@Request() req) {
+  getProfile(@Request() req) {
     return { ...req.user, password: undefined };
   }
 
@@ -81,5 +82,12 @@ export class UsersController {
     @Request() req,
   ) {
     return await this.UsersService.deleteUser(id, req.user);
+  }
+
+  @UseGuards(AuthGuard)
+  @Roles(RoleEnum.USER)
+  @Post('/external')
+  async getExternalUser(@Body() data: GetExternalUserDTO, @Request() req) {
+    return await this.UsersService.getExternalUser(data, req.user);
   }
 }

@@ -26,6 +26,12 @@ export class User extends Document<mongoose.Types.ObjectId> {
   @Prop({ required: true, type: String })
   password: string;
 
+  @Prop({ required: true, type: String })
+  firstName: string;
+
+  @Prop({ required: true, type: String })
+  lastName: string;
+
   @Prop({ required: true, type: String, default: '' })
   profilePhoto: string;
 

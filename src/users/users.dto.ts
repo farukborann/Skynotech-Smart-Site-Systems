@@ -6,7 +6,9 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
+import mongoose from 'mongoose';
 import { RoleEnum } from 'src/access-control/access-control.enum';
+import { IsMongoId } from 'src/decorators/IsMongoId';
 
 import { PartialType } from '@nestjs/mapped-types';
 
@@ -17,6 +19,12 @@ export class CreateUserDTO {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @IsString()
+  firstName: string;
+
+  @IsString()
+  lastName: string;
 
   @IsString()
   phoneNumber: string;
@@ -37,4 +45,14 @@ export class UpdatePrivacySettingsDTO {
 
   @IsBoolean()
   showProfilePhoto: boolean;
+}
+
+export class GetExternalUserDTO {
+  @IsMongoId()
+  @IsNotEmpty()
+  userId: mongoose.Types.ObjectId;
+
+  @IsMongoId()
+  @IsNotEmpty()
+  siteId: mongoose.Types.ObjectId;
 }

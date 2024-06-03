@@ -34,6 +34,13 @@ export class ScenariosController {
 
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
+  @Get()
+  async getUsersScenarios(@Req() req) {
+    return this.scenariosService.getUsersScenarios(req.user);
+  }
+
+  @UseGuards(AuthGuard)
+  @Roles(RoleEnum.USER)
   @Post()
   async createScenario(@Body() data: CreateScenarioDTO, @Req() req) {
     return this.scenariosService.createScenario(data, req.user);
