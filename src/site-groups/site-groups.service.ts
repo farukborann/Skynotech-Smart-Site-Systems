@@ -98,18 +98,15 @@ export class SiteGroupsService {
 
   async updateSiteGroup(
     id: mongoose.Types.ObjectId,
-    siteGroup: UpdateSiteGroupDTO,
+    data: UpdateSiteGroupDTO,
+    user: SessionUser,
   ) {
-    const _siteGroup = await this.siteGroupModel.findById(id);
+    const siteGroup = await this.getSiteGroupById(id);
 
-    if (!_siteGroup) {
-      throw new NotFoundException('Site Group Not Found');
-    }
-
-    if (siteGroup.sites) {
+    if (data.sites) {
       // Check if all sites exist
-      for (let i = 0; i < siteGroup.sites.length; i++) {
-        const site = await this.siteGroupModel.findById(siteGroup.sites[i]);
+      for (let i = 0; i < data.sites.length; i++) {
+        const site = await this.sitesServices.getSiteById(data.sites[i], user);
 
         if (!site) {
           throw new NotFoundException('Site not found');
@@ -117,9 +114,9 @@ export class SiteGroupsService {
       }
 
       // Check if site is not in the new site group sites (deleted site from site group)
-      for (let i = 0; i < _siteGroup.sites.length; i++) {
-        if (!siteGroup.sites.includes(_siteGroup.sites[i])) {
-          const site = await this.siteGroupModel.findById(_siteGroup.sites[i]);
+      for (let i = 0; i < siteGroup.sites.length; i++) {
+        if (!data.sites.includes(siteGroup.sites[i])) {
+          const site = await this.siteGroupModel.findById(siteGroup.sites[i]);
 
           site.admins = [];
           site.users = [];
@@ -128,15 +125,15 @@ export class SiteGroupsService {
         }
       }
 
-      _siteGroup.sites = siteGroup.sites.map(
+      siteGroup.sites = data.sites.map(
         (site) => new mongoose.Types.ObjectId(site),
       );
     }
 
-    if (siteGroup.admins) {
+    if (data.admins) {
       // Check if all admins exist
-      for (let i = 0; i < siteGroup.admins.length; i++) {
-        const admin = await this.siteGroupModel.findById(siteGroup.admins[i]);
+      for (let i = 0; i < data.admins.length; i++) {
+        const admin = await this.siteGroupModel.findById(data.admins[i]);
 
         if (!admin) {
           throw new NotFoundException('Admin not found');
@@ -144,16 +141,16 @@ export class SiteGroupsService {
       }
 
       // Check if admin is not in the new site group admins (deleted admin from site group)
-      for (let i = 0; i < _siteGroup.admins.length; i++) {
-        if (!siteGroup.admins.includes(_siteGroup.admins[i])) {
+      for (let i = 0; i < siteGroup.admins.length; i++) {
+        if (!data.admins.includes(siteGroup.admins[i])) {
           const adminSites = await this.sitesServices.getUsersSites({
             role: RoleEnum.USER,
-            _id: _siteGroup.admins[i].toString(),
+            _id: siteGroup.admins[i].toString(),
           } as any);
 
           for (let j = 0; j < adminSites.length; j++) {
             adminSites[j].admins = adminSites[j].admins.filter(
-              (admin) => admin.toString() !== _siteGroup.admins[i].toString(),
+              (admin) => admin.toString() !== siteGroup.admins[i].toString(),
             );
 
             await adminSites[j].save();
@@ -161,15 +158,15 @@ export class SiteGroupsService {
         }
       }
 
-      _siteGroup.admins = siteGroup.admins.map(
+      siteGroup.admins = data.admins.map(
         (admin) => new mongoose.Types.ObjectId(admin),
       );
     }
 
-    if (siteGroup.users) {
+    if (data.users) {
       // Check if all users exist
-      for (let i = 0; i < siteGroup.users.length; i++) {
-        const user = await this.siteGroupModel.findById(siteGroup.users[i]);
+      for (let i = 0; i < data.users.length; i++) {
+        const user = await this.siteGroupModel.findById(data.users[i]);
 
         if (!user) {
           throw new NotFoundException('User not found');
@@ -177,16 +174,16 @@ export class SiteGroupsService {
       }
 
       // Check if user is not in the new site group users (deleted user from site group)
-      for (let i = 0; i < _siteGroup.users.length; i++) {
-        if (!siteGroup.users.includes(_siteGroup.users[i])) {
+      for (let i = 0; i < siteGroup.users.length; i++) {
+        if (!data.users.includes(siteGroup.users[i])) {
           const userSites = await this.sitesServices.getUsersSites({
             role: RoleEnum.USER,
-            _id: _siteGroup.users[i].toString(),
+            _id: siteGroup.users[i].toString(),
           } as any);
 
           for (let j = 0; j < userSites.length; j++) {
             userSites[j].users = userSites[j].users.filter(
-              (user) => user.toString() !== _siteGroup.users[i].toString(),
+              (user) => user.toString() !== siteGroup.users[i].toString(),
             );
 
             await userSites[j].save();
@@ -194,16 +191,16 @@ export class SiteGroupsService {
         }
       }
 
-      _siteGroup.users = siteGroup.users.map(
+      siteGroup.users = data.users.map(
         (user) => new mongoose.Types.ObjectId(user),
       );
     }
 
-    if (siteGroup.name) {
-      _siteGroup.name = siteGroup.name;
+    if (data.name) {
+      siteGroup.name = data.name;
     }
 
-    return await _siteGroup.save();
+    return await siteGroup.save();
   }
 
   async deleteSiteGroup(id: mongoose.Types.ObjectId, user: SessionUser) {

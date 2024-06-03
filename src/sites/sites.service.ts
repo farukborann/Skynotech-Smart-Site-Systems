@@ -113,7 +113,7 @@ export class SitesService {
     if (data.province) site.province = data.province;
     if (data.district) site.district = data.district;
 
-    if (site.mqttTopic !== data.mqttTopic) {
+    if (data.mqttTopic && site.mqttTopic !== data.mqttTopic) {
       site.mqttTopic = data.mqttTopic;
       await site.save();
 

@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import { UsersService as _UsersService } from 'src/users/users.service';
+import { UsersService } from 'src/users/users.service';
 
 import {
   BadRequestException,
@@ -9,10 +9,10 @@ import {
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly UsersService: _UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.UsersService.getUserByEmail(email);
+    const user = await this.usersService.getUserByEmail(email);
 
     if (!user) {
       throw new NotAcceptableException('Could not find the user');

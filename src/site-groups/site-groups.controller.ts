@@ -44,8 +44,13 @@ export class SiteGroupsController {
   async updateSiteGroup(
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Body() siteGroup: UpdateSiteGroupDTO,
+    @Req() req,
   ) {
-    return await this.siteGroupsService.updateSiteGroup(id, siteGroup);
+    return await this.siteGroupsService.updateSiteGroup(
+      id,
+      siteGroup,
+      req.user,
+    );
   }
 
   @UseGuards(AuthGuard)
