@@ -75,4 +75,14 @@ export class SensorsController {
   ) {
     return this.sensorsService.getSensorsBySubSystemId(subSystemId, req.user);
   }
+
+  @UseGuards(AuthGuard)
+  @Roles(RoleEnum.USER)
+  @Get('value/:id')
+  async getSensorValueById(
+    @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
+    @Req() req,
+  ) {
+    return this.sensorsService.getSensorValueById(id, req.user);
+  }
 }

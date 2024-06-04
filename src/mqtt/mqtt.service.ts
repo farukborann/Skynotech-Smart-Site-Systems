@@ -23,7 +23,7 @@ export class MqttService {
   private sensorTopics: { [key: string]: string } = {};
 
   // sensorId -> lastValue
-  private lastValues: { [key: string]: string } = {};
+  private lastValues: { [key: string]: { value: string; date: Date } } = {};
 
   // sensorId -> scenario[]
   private sensorScenarios: { [key: string]: Scenario[] } = {};
@@ -86,7 +86,10 @@ export class MqttService {
 
       const sensorId = new mongoose.Types.ObjectId(this.topicSensors[topic]);
 
-      this.lastValues[sensorId.toString()] = message.toString();
+      this.lastValues[sensorId.toString()] = {
+        value: message.toString(),
+        date: new Date(),
+      };
 
       this.processSensorValueForScenario(sensorId, message.toString());
     });
@@ -104,6 +107,7 @@ export class MqttService {
     });
   }
 
+  // Subscription functions
   async unsubscribeForSensor(sensorId: mongoose.Types.ObjectId) {
     const subscriptionKey = this.sensorTopics[sensorId.toString()];
 
@@ -202,6 +206,7 @@ export class MqttService {
     console.log(`Subscribed to ${siteId} (Site)`);
   }
 
+  // Ignition functions
   async updateIgnitionStatus(
     subSystemId: mongoose.Types.ObjectId,
     ignitionStatuses: object,
@@ -252,8 +257,33 @@ export class MqttService {
       return;
     }
 
+    const valueNumber = parseFloat(value);
+
+    if (isNaN(valueNumber)) {
+      console.error(`Value ${value} is not a number for sensor ${sensorId}`);
+      return;
+    }
+
     for (const scenario of this.sensorScenarios[sensorId.toString()]) {
       // TODO: Implement scenario processing
+      if (valueNumber < scenario.min) {
+        console.log(
+          `Value ${value} is less than ${scenario.min} for sensor ${sensorId}`,
+        );
+      } else if (valueNumber > scenario.max) {
+        console.log(
+          `Value ${value} is greater than ${scenario.max} for sensor ${sensorId}`,
+        );
+      } else {
+        console.log(
+          `Value ${value} is between ${scenario.min} and ${scenario.max} for sensor ${sensorId}`,
+        );
+      }
     }
+  }
+
+  // Sensor functions
+  async getSensorsLastValue(sensorId: mongoose.Types.ObjectId) {
+    return this.lastValues[sensorId.toString()];
   }
 }

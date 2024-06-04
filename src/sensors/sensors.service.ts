@@ -120,4 +120,9 @@ export class SensorsService {
 
     return res;
   }
+
+  async getSensorValueById(id: mongoose.Types.ObjectId, user: SessionUser) {
+    await this.checkUserAccessToSensor(id, user);
+    return this.mqttService.getSensorsLastValue(id);
+  }
 }
