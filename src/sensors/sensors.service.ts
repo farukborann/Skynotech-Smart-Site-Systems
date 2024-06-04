@@ -54,13 +54,13 @@ export class SensorsService {
       subSystemId: subSystem._id,
     });
 
-    this.mqttService.subscribeForSensor(res._id);
+    await this.mqttService.subscribeForSensor(res._id);
 
     return res;
   }
 
   async getAllSensors() {
-    return this.sensorsModel.find().exec();
+    return await this.sensorsModel.find().exec();
   }
 
   async getSensorById(id: mongoose.Types.ObjectId, user: SessionUser) {
@@ -73,7 +73,7 @@ export class SensorsService {
   ) {
     await this.subSystemsService.checkUserAccessToSubSystem(subSystemId, user);
 
-    return this.sensorsModel
+    return await this.sensorsModel
       .find({ subSystemId: new moongose.Types.ObjectId(subSystemId) })
       .exec();
   }
@@ -93,27 +93,29 @@ export class SensorsService {
     return res;
   }
 
-  async updateSensor(id: mongoose.Types.ObjectId, sensor: UpdateSensorDTO) {
-    const _sensor = await this.sensorsModel.findById(id).exec();
+  async updateSensor(id: mongoose.Types.ObjectId, data: UpdateSensorDTO) {
+    const sensor = await this.sensorsModel.findById(id).exec();
 
-    if (!_sensor) {
+    if (!sensor) {
       throw new NotFoundException('Sensor not found');
     }
 
-    const subSystem = this.subSystemsService.getSubSystemById(
-      sensor.subSystemId,
-      SystemSession,
-    );
+    if (data.subSystemId) {
+      const subSystem = await this.subSystemsService.getSubSystemById(
+        data.subSystemId,
+        SystemSession,
+      );
 
-    if (!subSystem) {
-      throw new NotFoundException('SubSystem not found');
+      if (!subSystem) {
+        throw new NotFoundException('SubSystem not found');
+      }
     }
 
-    const res = this.sensorsModel
-      .findByIdAndUpdate(id, sensor, { new: true })
+    const res = await this.sensorsModel
+      .findByIdAndUpdate(id, data, { new: true })
       .exec();
 
-    if (sensor.mqttTopic !== _sensor.mqttTopic) {
+    if (data.mqttTopic !== sensor.mqttTopic) {
       await this.mqttService.unsubscribeForSensor(id);
       await this.mqttService.subscribeForSensor(id);
     }
@@ -123,6 +125,6 @@ export class SensorsService {
 
   async getSensorValueById(id: mongoose.Types.ObjectId, user: SessionUser) {
     await this.checkUserAccessToSensor(id, user);
-    return this.mqttService.getSensorsLastValue(id);
+    return await this.mqttService.getSensorsLastValue(id);
   }
 }

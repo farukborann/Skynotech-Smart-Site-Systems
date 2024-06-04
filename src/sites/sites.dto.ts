@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 import mongoose from 'mongoose';
 import { IsMongoIdArray } from 'src/decorators/IsMongoId';
 
@@ -20,11 +20,9 @@ export class CreateSiteDTO {
   @IsString()
   mqttTopic: string;
 
-  @IsNotEmpty()
   @IsMongoIdArray()
   admins: mongoose.Types.ObjectId[];
 
-  @IsNotEmpty()
   @IsMongoIdArray()
   users: mongoose.Types.ObjectId[];
 }

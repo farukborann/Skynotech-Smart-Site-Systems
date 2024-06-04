@@ -19,15 +19,12 @@ export class CreateScenarioDTO {
   name: string;
 
   @IsMongoId()
-  @IsNotEmpty()
   sensorId: mongoose.Types.ObjectId;
 
   @IsNumber()
-  @IsNotEmpty()
   min: number;
 
   @IsNumber()
-  @IsNotEmpty()
   max: number;
 
   @IsDate()

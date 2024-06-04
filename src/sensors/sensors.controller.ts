@@ -15,7 +15,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CreateSensorDTO } from './sensors.dto';
+import { CreateSensorDTO, UpdateSensorDTO } from './sensors.dto';
 import { SensorsService } from './sensors.service';
 
 @Controller('sensors')
@@ -26,14 +26,14 @@ export class SensorsController {
   @Roles(RoleEnum.SUPER_ADMIN)
   @Get()
   async getAllSensors() {
-    return this.sensorsService.getAllSensors();
+    return await this.sensorsService.getAllSensors();
   }
 
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.SUPER_ADMIN)
   @Post()
   async createSensor(@Body() sensor: CreateSensorDTO) {
-    return this.sensorsService.createSensor(sensor);
+    return await this.sensorsService.createSensor(sensor);
   }
 
   @UseGuards(AuthGuard)
@@ -41,9 +41,9 @@ export class SensorsController {
   @Patch(':id')
   async updateSensor(
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
-    @Body() sensor: CreateSensorDTO,
+    @Body() sensor: UpdateSensorDTO,
   ) {
-    return this.sensorsService.updateSensor(id, sensor);
+    return await this.sensorsService.updateSensor(id, sensor);
   }
 
   @UseGuards(AuthGuard)
@@ -52,7 +52,7 @@ export class SensorsController {
   async deleteSensor(
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
   ) {
-    return this.sensorsService.deleteSensor(id);
+    return await this.sensorsService.deleteSensor(id);
   }
 
   @UseGuards(AuthGuard)
@@ -62,7 +62,7 @@ export class SensorsController {
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Req() req,
   ) {
-    return this.sensorsService.getSensorById(id, req.user);
+    return await this.sensorsService.getSensorById(id, req.user);
   }
 
   @UseGuards(AuthGuard)
@@ -73,7 +73,10 @@ export class SensorsController {
     subSystemId: mongoose.Types.ObjectId,
     @Req() req,
   ) {
-    return this.sensorsService.getSensorsBySubSystemId(subSystemId, req.user);
+    return await this.sensorsService.getSensorsBySubSystemId(
+      subSystemId,
+      req.user,
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -83,6 +86,6 @@ export class SensorsController {
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Req() req,
   ) {
-    return this.sensorsService.getSensorValueById(id, req.user);
+    return await this.sensorsService.getSensorValueById(id, req.user);
   }
 }

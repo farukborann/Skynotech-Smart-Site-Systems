@@ -23,7 +23,8 @@ export class MqttService {
   private sensorTopics: { [key: string]: string } = {};
 
   // sensorId -> lastValue
-  private lastValues: { [key: string]: { value: string; date: Date } } = {};
+  private lastValues: { [key: string]: { value: string; timestamp: Date } } =
+    {};
 
   // sensorId -> scenario[]
   private sensorScenarios: { [key: string]: Scenario[] } = {};
@@ -77,10 +78,7 @@ export class MqttService {
     });
 
     this.client.on('message', (topic, message) => {
-      if (
-        !this.topicSensors[topic] ||
-        mongoose.Types.ObjectId.isValid(this.topicSensors[topic])
-      ) {
+      if (!this.topicSensors[topic]) {
         return;
       }
 
@@ -88,7 +86,7 @@ export class MqttService {
 
       this.lastValues[sensorId.toString()] = {
         value: message.toString(),
-        date: new Date(),
+        timestamp: new Date(),
       };
 
       this.processSensorValueForScenario(sensorId, message.toString());
@@ -284,6 +282,11 @@ export class MqttService {
 
   // Sensor functions
   async getSensorsLastValue(sensorId: mongoose.Types.ObjectId) {
-    return this.lastValues[sensorId.toString()];
+    return (
+      this.lastValues[sensorId.toString()] ?? {
+        value: '-',
+        timestamp: new Date(),
+      }
+    );
   }
 }

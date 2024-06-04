@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import mongoose from 'mongoose';
 
 import { applyDecorators, BadRequestException } from '@nestjs/common';
+import { IsNotEmpty } from 'class-validator';
 
 export function ToMongoObjectId({ value, key }): mongoose.Types.ObjectId {
   if (mongoose.Types.ObjectId.isValid(value)) {
@@ -13,6 +14,7 @@ export function ToMongoObjectId({ value, key }): mongoose.Types.ObjectId {
 
 export function IsMongoId() {
   return applyDecorators(
+    IsNotEmpty(),
     Type(() => mongoose.Types.ObjectId),
     Transform(ToMongoObjectId, { toClassOnly: true }),
   );
@@ -20,6 +22,7 @@ export function IsMongoId() {
 
 export function IsMongoIdArray() {
   return applyDecorators(
+    IsNotEmpty(),
     Type(() => mongoose.Types.ObjectId),
     Transform(
       (params) => {

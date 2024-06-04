@@ -15,6 +15,9 @@ export class SubSystem extends Document<mongoose.Types.ObjectId> {
   siteId: mongoose.Types.ObjectId;
 
   @Prop({ required: true, type: String })
+  name: string;
+
+  @Prop({ required: true, type: String })
   mqttTopic: string;
 
   @Prop({ required: true, type: Number })

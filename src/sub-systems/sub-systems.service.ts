@@ -72,9 +72,24 @@ export class SubSystemsService {
       initialIgnitionStatuses[`${i}`] = 0;
     }
 
+    const lastCreatedSameTypeSubSystem = await this.subSystemsModel
+      .findOne({
+        siteId: site._id,
+        systemType: data.systemType,
+      })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    const name =
+      lastCreatedSameTypeSubSystem &&
+      parseInt(lastCreatedSameTypeSubSystem.name)
+        ? parseInt(lastCreatedSameTypeSubSystem.name) + 1
+        : 1;
+
     const subSystem = {
       ...data,
       siteId: site._id,
+      name: `${name}`,
       lastIgnitionStatuses: initialIgnitionStatuses,
     };
 

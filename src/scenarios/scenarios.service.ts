@@ -46,7 +46,7 @@ export class ScenariosService {
   ) {
     await this.sensorsService.checkUserAccessToSensor(sensorId, user);
 
-    return this.scenariosModel.find({ sensorId });
+    return await this.scenariosModel.find({ sensorId });
   }
 
   async getUsersScenarios(user: SessionUser) {
@@ -90,7 +90,7 @@ export class ScenariosService {
   async createScenario(scenario: CreateScenarioDTO, user: SessionUser) {
     await this.sensorsService.checkUserAccessToSensor(scenario.sensorId, user);
 
-    const res = this.scenariosModel.create(scenario);
+    const res = await this.scenariosModel.create(scenario);
 
     await this.mqttService.updateSensorsScenarios(scenario.sensorId);
 
@@ -108,7 +108,7 @@ export class ScenariosService {
       throw new NotFoundException('Scenario not found');
     }
 
-    const res = this.scenariosModel.findByIdAndUpdate(scenarioId, data);
+    const res = await this.scenariosModel.findByIdAndUpdate(scenarioId, data);
 
     await this.mqttService.updateSensorsScenarios(data.sensorId);
 

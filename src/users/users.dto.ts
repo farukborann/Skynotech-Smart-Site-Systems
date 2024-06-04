@@ -49,10 +49,8 @@ export class UpdatePrivacySettingsDTO {
 
 export class GetExternalUserDTO {
   @IsMongoId()
-  @IsNotEmpty()
   userId: mongoose.Types.ObjectId;
 
   @IsMongoId()
-  @IsNotEmpty()
   siteId: mongoose.Types.ObjectId;
 }

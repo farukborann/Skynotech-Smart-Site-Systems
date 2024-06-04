@@ -29,21 +29,24 @@ export class ScenariosController {
     @Param('sensorId', ParseObjectIdPipe) sensorId: mongoose.Types.ObjectId,
     @Req() req,
   ) {
-    return this.scenariosService.getScenariosBySensorId(sensorId, req.user);
+    return await this.scenariosService.getScenariosBySensorId(
+      sensorId,
+      req.user,
+    );
   }
 
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
   @Get()
   async getUsersScenarios(@Req() req) {
-    return this.scenariosService.getUsersScenarios(req.user);
+    return await this.scenariosService.getUsersScenarios(req.user);
   }
 
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
   @Post()
   async createScenario(@Body() data: CreateScenarioDTO, @Req() req) {
-    return this.scenariosService.createScenario(data, req.user);
+    return await this.scenariosService.createScenario(data, req.user);
   }
 
   @UseGuards(AuthGuard)
@@ -54,7 +57,7 @@ export class ScenariosController {
     @Body() data: UpdateScenarioDTO,
     @Req() req,
   ) {
-    return this.scenariosService.updateScenario(id, data, req.user);
+    return await this.scenariosService.updateScenario(id, data, req.user);
   }
 
   @UseGuards(AuthGuard)
@@ -64,6 +67,6 @@ export class ScenariosController {
     @Param('id', ParseObjectIdPipe) id: mongoose.Types.ObjectId,
     @Req() req,
   ) {
-    return this.scenariosService.deleteScenario(id, req.user);
+    return await this.scenariosService.deleteScenario(id, req.user);
   }
 }
