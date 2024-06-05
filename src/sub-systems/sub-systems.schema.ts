@@ -24,7 +24,7 @@ export class SubSystem extends Document<mongoose.Types.ObjectId> {
   ignitionCount: number;
 
   @Prop({ required: true, type: Object })
-  lastIgnitionStatuses: object;
+  lastIgnitionStatuses: { [key: string]: 1 | 0 };
 }
 
 export const SubSystemSchema = SchemaFactory.createForClass(SubSystem);

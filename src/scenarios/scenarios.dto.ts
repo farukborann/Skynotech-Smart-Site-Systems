@@ -1,15 +1,14 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize,
   IsDate,
   IsNotEmpty,
   IsNumber,
+  IsObject,
+  IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
 import mongoose from 'mongoose';
 import { IsMongoId } from 'src/decorators/IsMongoId';
-import { UpdateIgnitionStatusDTO } from 'src/sub-systems/sub-systems.dto';
 
 import { PartialType } from '@nestjs/mapped-types';
 
@@ -19,13 +18,19 @@ export class CreateScenarioDTO {
   name: string;
 
   @IsMongoId()
-  sensorId: mongoose.Types.ObjectId;
+  subSystemId: mongoose.Types.ObjectId;
 
-  @IsNumber()
-  min: number;
+  @IsOptional()
+  @IsMongoId()
+  sensorId?: mongoose.Types.ObjectId;
 
+  @IsOptional()
   @IsNumber()
-  max: number;
+  min?: number;
+
+  @IsOptional()
+  @IsNumber()
+  max?: number;
 
   @IsDate()
   @Type(() => Date)
@@ -35,11 +40,9 @@ export class CreateScenarioDTO {
   @Type(() => Date)
   endDate: string;
 
-  @ValidateNested({ each: true })
-  @Type(() => UpdateIgnitionStatusDTO)
-  @IsNotEmpty()
-  @ArrayMinSize(1)
-  ignitions: UpdateIgnitionStatusDTO[];
+  @Type(() => Object)
+  @IsObject()
+  ignitions: { [key: string]: 1 | 0 };
 }
 
 export class UpdateScenarioDTO extends PartialType(CreateScenarioDTO) {}

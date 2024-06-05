@@ -3,6 +3,7 @@ import { connect, MqttClient } from 'mqtt';
 import { SystemSession } from 'src/auth/session.interface';
 import { Scenario } from 'src/scenarios/scenarios.schema';
 import { ScenariosService } from 'src/scenarios/scenarios.service';
+import { areNowBetweenTimeIntervals } from 'src/scenarios/scenarios.utils';
 import { Sensor } from 'src/sensors/sensors.schema';
 import { SensorsService } from 'src/sensors/sensors.service';
 import { Site } from 'src/sites/sites.schema';
@@ -10,7 +11,7 @@ import { SitesService } from 'src/sites/sites.service';
 import { SubSystem } from 'src/sub-systems/sub-systems.schema';
 import { SubSystemsService } from 'src/sub-systems/sub-systems.service';
 
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class MqttService {
@@ -28,6 +29,9 @@ export class MqttService {
 
   // sensorId -> scenario[]
   private sensorScenarios: { [key: string]: Scenario[] } = {};
+
+  // subSystemId -> scenario[] (no condition scenarios)
+  private subSystemsScenarios: { [key: string]: Scenario[] } = {};
 
   readonly MQTT_OPTIONS = {
     host: 'skynotech-0u674v.a01.euc1.aws.hivemq.cloud',
@@ -65,16 +69,23 @@ export class MqttService {
       password: this.MQTT_OPTIONS.password,
       connectTimeout: this.MQTT_OPTIONS.connectTimeout,
     });
+
     this.client.on('connect', async () => {
-      console.log('Connected to MQTT broker');
+      Logger.warn('Connected to MQTT broker');
       const sites = await this.sitesService.getAllSites();
       for (const site of sites) {
         await this.subscribeForSite(site._id);
       }
+
+      setInterval(() => {
+        this.processSubSystemScenarios();
+      }, 60000);
+
+      Logger.log('Started processing scenarios for subSystems on every minute');
     });
 
     this.client.on('error', (error) => {
-      console.error('MQTT error:', error);
+      Logger.error('MQTT error:', error);
     });
 
     this.client.on('message', (topic, message) => {
@@ -93,15 +104,15 @@ export class MqttService {
     });
 
     this.client.on('close', () => {
-      console.log('MQTT connection closed');
+      Logger.log('MQTT connection closed');
     });
 
     this.client.on('reconnect', () => {
-      console.log('MQTT reconnecting');
+      Logger.log('MQTT reconnecting');
     });
 
     this.client.on('end', () => {
-      console.log('MQTT connection ended');
+      Logger.log('MQTT connection ended');
     });
   }
 
@@ -118,7 +129,7 @@ export class MqttService {
     delete this.sensorTopics[sensorId.toString()];
     delete this.topicSensors[subscriptionKey];
 
-    console.log(`Unsubscribed from ${subscriptionKey} (Sensor)`);
+    Logger.log(`Unsubscribed from ${subscriptionKey} (Sensor)`);
   }
 
   async unsubscribeForSubSystem(subSystemId: mongoose.Types.ObjectId) {
@@ -131,7 +142,7 @@ export class MqttService {
       await this.unsubscribeForSensor(sensor._id);
     }
 
-    console.log(`Unsubscribed from ${subSystemId} (SubSystem)`);
+    Logger.log(`Unsubscribed from ${subSystemId} (SubSystem)`);
   }
 
   async unsubscribeForSite(siteId: mongoose.Types.ObjectId) {
@@ -144,7 +155,7 @@ export class MqttService {
       await this.unsubscribeForSubSystem(subSystem._id);
     }
 
-    console.log(`Unsubscribed from ${siteId} (Site)`);
+    Logger.log(`Unsubscribed from ${siteId} (Site)`);
   }
 
   async subscribeForSensor(sensorId: mongoose.Types.ObjectId) {
@@ -170,7 +181,9 @@ export class MqttService {
     this.topicSensors[subscriptionKey] = sensorId.toString();
     this.sensorTopics[sensorId.toString()] = subscriptionKey;
 
-    console.log(`Subscribed to ${subscriptionKey} (Sensor)`);
+    await this.updateSensorsScenarios(sensorId);
+
+    Logger.log(`Subscribed to ${subscriptionKey} (Sensor)`);
   }
 
   async subscribeForSubSystem(subSystemId: mongoose.Types.ObjectId) {
@@ -188,7 +201,9 @@ export class MqttService {
       await this.subscribeForSensor(sensor._id);
     }
 
-    console.log(`Subscribed to ${subSystemId} (SubSystem)`);
+    await this.updateSubSystemsScenarios(subSystemId);
+
+    Logger.log(`Subscribed to ${subSystemId} (SubSystem)`);
   }
 
   async subscribeForSite(siteId: mongoose.Types.ObjectId) {
@@ -201,7 +216,7 @@ export class MqttService {
       await this.subscribeForSubSystem(subSystem._id);
     }
 
-    console.log(`Subscribed to ${siteId} (Site)`);
+    Logger.log(`Subscribed to ${siteId} (Site)`);
   }
 
   // Ignition functions
@@ -236,7 +251,7 @@ export class MqttService {
       scenario.toObject(),
     );
 
-    console.log(
+    Logger.log(
       `Updated scenarios for sensor ${sensorId} (${scenarios.length} scenarios)`,
     );
   }
@@ -245,6 +260,8 @@ export class MqttService {
     if (this.sensorScenarios[sensorId.toString()]) {
       delete this.sensorScenarios[sensorId.toString()];
     }
+
+    Logger.log(`Deleted scenarios for sensor ${sensorId}`);
   }
 
   async processSensorValueForScenario(
@@ -258,23 +275,90 @@ export class MqttService {
     const valueNumber = parseFloat(value);
 
     if (isNaN(valueNumber)) {
-      console.error(`Value ${value} is not a number for sensor ${sensorId}`);
+      Logger.error(`Value ${value} is not a number for sensor ${sensorId}`);
       return;
     }
 
-    for (const scenario of this.sensorScenarios[sensorId.toString()]) {
-      // TODO: Implement scenario processing
+    const activeScenarios = this.sensorScenarios[sensorId.toString()].filter(
+      (scenario) =>
+        areNowBetweenTimeIntervals(scenario.startDate, scenario.endDate),
+    );
+
+    for (const scenario of activeScenarios) {
       if (valueNumber < scenario.min) {
-        console.log(
-          `Value ${value} is less than ${scenario.min} for sensor ${sensorId}`,
+        const newIgnitionStatus: { [key: string]: number } = {};
+
+        Object.keys(scenario.ignitions).forEach((ignitionIndex) => {
+          newIgnitionStatus[ignitionIndex] = 0;
+        });
+
+        await this.updateIgnitionStatus(
+          scenario.subSystemId,
+          newIgnitionStatus,
+        );
+
+        Logger.log(
+          `Value ${value} is less than ${scenario.min} for sensor ${sensorId} and scenario ${scenario._id}`,
         );
       } else if (valueNumber > scenario.max) {
-        console.log(
-          `Value ${value} is greater than ${scenario.max} for sensor ${sensorId}`,
+        await this.updateIgnitionStatus(
+          scenario.subSystemId,
+          scenario.ignitions,
+        );
+
+        Logger.log(
+          `Value ${value} is greater than ${scenario.max} for sensor ${sensorId} and scenario ${scenario._id}`,
         );
       } else {
-        console.log(
-          `Value ${value} is between ${scenario.min} and ${scenario.max} for sensor ${sensorId}`,
+        Logger.log(
+          `Value ${value} is between ${scenario.min} and ${scenario.max} for sensor ${sensorId} and scenario ${scenario._id}`,
+        );
+      }
+    }
+  }
+
+  async updateSubSystemsScenarios(subSystemId: mongoose.Types.ObjectId) {
+    // Get only scenarios without sensor
+    const scenarios = (
+      await this.scenariosService.getScenariosBySubSystemId(
+        subSystemId,
+        SystemSession,
+      )
+    ).filter((scenario) => !scenario.sensorId);
+
+    this.subSystemsScenarios[subSystemId.toString()] = scenarios.map(
+      (scenario) => scenario.toObject(),
+    );
+
+    Logger.log(
+      `Updated scenarios for subSystem ${subSystemId} (${scenarios.length} scenarios)`,
+    );
+  }
+
+  async deleteSubSystemsScenarios(subSystemId: mongoose.Types.ObjectId) {
+    if (this.subSystemsScenarios[subSystemId.toString()]) {
+      delete this.subSystemsScenarios[subSystemId.toString()];
+    }
+
+    Logger.log(`Deleted scenarios for subSystem ${subSystemId}`);
+  }
+
+  async processSubSystemScenarios() {
+    for (const subSystemId in this.subSystemsScenarios) {
+      if (!this.subSystemsScenarios[subSystemId.toString()]) {
+        return;
+      }
+
+      const activeScenarios = this.subSystemsScenarios[
+        subSystemId.toString()
+      ].filter((scenario) =>
+        areNowBetweenTimeIntervals(scenario.startDate, scenario.endDate),
+      );
+
+      for (const scenario of activeScenarios) {
+        await this.updateIgnitionStatus(
+          scenario.subSystemId,
+          scenario.ignitions,
         );
       }
     }

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import * as MongooseDelete from 'mongoose-delete';
 
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RoleEnum } from './access-control/access-control.enum';
@@ -52,7 +52,7 @@ export class AppModule {
     const superAdmins = await this.usersService.getSuperAdmins();
 
     if (!superAdmins.length) {
-      console.log('No super admins found, creating default super admin');
+      Logger.warn('No super admins found, creating default super admin');
 
       await this.usersService.createUser({
         email: 'iam@superadmin.com',

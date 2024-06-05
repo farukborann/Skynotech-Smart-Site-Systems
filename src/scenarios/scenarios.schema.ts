@@ -10,14 +10,17 @@ export class Scenario extends Document<mongoose.Types.ObjectId> {
   })
   name: string;
 
-  @Prop({ required: true, type: mongoose.Types.ObjectId, ref: 'sensors' })
-  sensorId: mongoose.Types.ObjectId;
+  @Prop({ required: true, type: mongoose.Types.ObjectId, ref: 'subsystems' })
+  subSystemId: mongoose.Types.ObjectId;
 
-  @Prop({ required: true, type: Number })
-  min: number;
+  @Prop({ required: false, type: mongoose.Types.ObjectId, ref: 'sensors' })
+  sensorId?: mongoose.Types.ObjectId;
 
-  @Prop({ required: true, type: Number })
-  max: number;
+  @Prop({ required: false, type: Number })
+  min?: number;
+
+  @Prop({ required: false, type: Number })
+  max?: number;
 
   @Prop({ required: true, type: Date })
   startDate: Date;
@@ -26,7 +29,7 @@ export class Scenario extends Document<mongoose.Types.ObjectId> {
   endDate: Date;
 
   @Prop({ required: true, type: Object })
-  ignitions: object;
+  ignitions: { [key: string]: number };
 }
 
 export const ScenarioSchema = SchemaFactory.createForClass(Scenario);

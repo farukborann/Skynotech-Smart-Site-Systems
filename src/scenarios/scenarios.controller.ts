@@ -24,13 +24,27 @@ export class ScenariosController {
 
   @UseGuards(AuthGuard)
   @Roles(RoleEnum.USER)
-  @Get(':sensorId')
+  @Get('/sensor/:sensorId')
   async getScenariosBySensorId(
     @Param('sensorId', ParseObjectIdPipe) sensorId: mongoose.Types.ObjectId,
     @Req() req,
   ) {
     return await this.scenariosService.getScenariosBySensorId(
       sensorId,
+      req.user,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Roles(RoleEnum.USER)
+  @Get('/sub-system/:subSystemId')
+  async getScenariosBySubSystemId(
+    @Param('subSystemId', ParseObjectIdPipe)
+    subSystemId: mongoose.Types.ObjectId,
+    @Req() req,
+  ) {
+    return await this.scenariosService.getScenariosBySubSystemId(
+      subSystemId,
       req.user,
     );
   }
