@@ -15,6 +15,8 @@ import { SitesModule } from './sites/sites.module';
 import { SubSystemsModule } from './sub-systems/sub-systems.module';
 import { UsersModule } from './users/users.module';
 import { UsersService } from './users/users.service';
+import { NotificationsController } from './notifications/notifications.controller';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -37,7 +39,9 @@ import { UsersService } from './users/users.service';
     AccessControlModule,
     SiteGroupsModule,
     MqttModule,
+    NotificationsModule,
   ],
+  controllers: [NotificationsController],
 })
 // TODO: Check all endpoints has access control
 // TODO: Check all endpoints has update mqtt service
