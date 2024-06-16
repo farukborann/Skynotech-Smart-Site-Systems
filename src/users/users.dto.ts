@@ -34,7 +34,10 @@ export class CreateUserDTO {
   role: string;
 }
 
-export class UpdateUserDTO extends PartialType(CreateUserDTO) {}
+export class UpdateUserDTO extends PartialType(CreateUserDTO) {
+  @IsString()
+  profilePhoto: string;
+}
 
 export class UpdatePrivacySettingsDTO {
   @IsBoolean()

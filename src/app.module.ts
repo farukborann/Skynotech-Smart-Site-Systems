@@ -8,6 +8,7 @@ import { RoleEnum } from './access-control/access-control.enum';
 import { AccessControlModule } from './access-control/access-control.module';
 import { AuthModule } from './auth/auth.module';
 import { MqttModule } from './mqtt/mqtt.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ScenariosModule } from './scenarios/scenarios.module';
 import { SensorsModule } from './sensors/sensors.module';
 import { SiteGroupsModule } from './site-groups/site-groups.module';
@@ -15,8 +16,6 @@ import { SitesModule } from './sites/sites.module';
 import { SubSystemsModule } from './sub-systems/sub-systems.module';
 import { UsersModule } from './users/users.module';
 import { UsersService } from './users/users.service';
-import { NotificationsController } from './notifications/notifications.controller';
-import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -41,7 +40,6 @@ import { NotificationsModule } from './notifications/notifications.module';
     MqttModule,
     NotificationsModule,
   ],
-  controllers: [NotificationsController],
 })
 // TODO: Check all endpoints has access control
 // TODO: Check all endpoints has update mqtt service
