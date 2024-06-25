@@ -37,8 +37,8 @@ import { UsersService } from './users/users.service';
     AuthModule,
     AccessControlModule,
     SiteGroupsModule,
-    MqttModule,
     NotificationsModule,
+    MqttModule,
   ],
 })
 // TODO: Check all endpoints has access control
