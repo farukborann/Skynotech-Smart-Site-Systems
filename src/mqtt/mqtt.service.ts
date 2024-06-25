@@ -63,12 +63,6 @@ export class MqttService {
     @Inject(forwardRef(() => ScenariosService))
     private readonly scenariosService: ScenariosService,
   ) {
-    setTimeout(() => {
-      this.initMQTT();
-    }, 1000);
-  }
-
-  initMQTT() {
     this.client = connect(`mqtts://${this.MQTT_OPTIONS.host}`, {
       port: this.MQTT_OPTIONS.port,
       username: this.MQTT_OPTIONS.username,
@@ -78,16 +72,21 @@ export class MqttService {
 
     this.client.on('connect', async () => {
       Logger.warn('Connected to MQTT broker');
-      const sites = await this.sitesService.getAllSites();
-      for (const site of sites) {
-        await this.subscribeForSite(site._id);
-      }
 
-      setInterval(() => {
-        this.processSubSystemScenarios();
-      }, 60000);
+      setTimeout(async () => {
+        const sites = await this.sitesService.getAllSites();
+        for (const site of sites) {
+          await this.subscribeForSite(site._id);
+        }
 
-      Logger.log('Started processing scenarios for subSystems on every minute');
+        setInterval(() => {
+          this.processSubSystemScenarios();
+        }, 60000);
+
+        Logger.log(
+          'Started processing scenarios for subSystems on every minute',
+        );
+      }, 1000);
     });
 
     this.client.on('error', (error) => {
@@ -243,7 +242,17 @@ export class MqttService {
     const ignitionSubscriptionKey = this.getTopicForIgnitions(site, subSystem);
     const data = JSON.stringify({ [this.IGNITION_JSON_KEY]: ignitionStatuses });
 
-    this.client?.publish(ignitionSubscriptionKey, data);
+    this.client?.publish(ignitionSubscriptionKey, data, (error) => {
+      if (error) {
+        Logger.error(
+          `Error while updating ignition status for ${subSystemId}: ${error}`,
+        );
+      } else {
+        Logger.log(
+          `Updated ignition status for ${subSystemId} (${ignitionSubscriptionKey})`,
+        );
+      }
+    });
   }
 
   // Scenario functions
