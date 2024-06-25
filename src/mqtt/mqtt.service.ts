@@ -63,6 +63,12 @@ export class MqttService {
     @Inject(forwardRef(() => ScenariosService))
     private readonly scenariosService: ScenariosService,
   ) {
+    setTimeout(() => {
+      this.initMQTT();
+    }, 1000);
+  }
+
+  initMQTT() {
     this.client = connect(`mqtts://${this.MQTT_OPTIONS.host}`, {
       port: this.MQTT_OPTIONS.port,
       username: this.MQTT_OPTIONS.username,

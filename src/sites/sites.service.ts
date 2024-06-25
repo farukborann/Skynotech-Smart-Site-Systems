@@ -41,6 +41,7 @@ export class SitesService {
   }
 
   async getAllSites() {
+    // TODO: check this
     return await this.siteModel.find({}).exec();
   }
 
